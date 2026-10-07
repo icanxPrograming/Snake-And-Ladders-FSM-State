@@ -19,6 +19,42 @@ export class MovementSystem {
     return null;
   }
 
+  resolvePostMove({ position, source, specialTiles, ladders, snakes }) {
+    const tileType = this.getTileDifficulty(position, specialTiles);
+    const ladderIndex = this.findLadderIndices(position, ladders)[0] ?? -1;
+    const snakeIndex = this.findSnakeIndices(position, snakes)[0] ?? -1;
+
+    if (tileType && (ladderIndex !== -1 || snakeIndex !== -1)) {
+      return {
+        action: "guardian",
+        index: ladderIndex !== -1 ? ladderIndex : snakeIndex,
+        tileType,
+      };
+    }
+
+    if (tileType && source === "storm") {
+      return { action: "question", tileType };
+    }
+
+    if (tileType && source !== "mysteryBonus" && source !== "question") {
+      return { action: "question", tileType };
+    }
+
+    if (tileType) {
+      return { action: "turn", tileType };
+    }
+
+    if (ladderIndex !== -1) {
+      return { action: "ladder", index: ladderIndex };
+    }
+
+    if (snakeIndex !== -1) {
+      return { action: "snake", index: snakeIndex };
+    }
+
+    return { action: "turn", tileType: null };
+  }
+
   findLadderIndices(position, ladders) {
     return ladders.reduce((indices, ladder, index) => {
       if (ladder[0] === position) indices.push(index);

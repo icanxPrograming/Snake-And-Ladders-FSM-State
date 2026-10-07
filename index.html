@@ -179,14 +179,6 @@
     </style>
   </head>
   <body>
-    <button
-      id="musicToggleGlobal"
-      class="ui-round-btn music-btn-global"
-      onclick="toggleMusic()"
-      title="Musik"
-    >
-      <span class="material-symbols-outlined" id="musicIcon">music_off</span>
-    </button>
     <div class="screen" id="screen1">
       <div class="s1-card">
         <h1>Ular Tangga Matematika</h1>
@@ -384,9 +376,71 @@
     <div class="screen" id="screen3">
       <!-- Game board player status and many more -->
       <div class="container">
-        <button class="info-btn" onclick="openInfoModal()">
-          <span class="material-symbols-outlined">info</span>
-        </button>
+        <div
+          id="gameActionClusterLeft"
+          class="game-action-cluster game-action-cluster-left"
+          aria-label="Ikuti game"
+        >
+          <button
+            id="musicToggleGlobal"
+            class="ui-round-btn game-action-btn"
+            onclick="toggleMusic()"
+            title="Matikan atau aktifkan musik"
+            aria-label="Matikan atau aktifkan musik"
+          >
+            <span class="material-symbols-outlined" id="musicIcon"
+              >music_off</span
+            >
+          </button>
+          <button
+            class="game-action-btn"
+            onclick="openInfoModal()"
+            title="Informasi kotak"
+            aria-label="Informasi kotak"
+          >
+            <span class="material-symbols-outlined">info</span>
+          </button>
+        </div>
+        <div class="game-menu" aria-label="Menu game">
+          <button
+            id="gameMenuToggle"
+            class="game-menu-toggle game-action-btn"
+            type="button"
+            title="Menu game"
+            aria-label="Buka menu game"
+            aria-expanded="false"
+            aria-controls="gameMenuDropdown"
+          >
+            <span class="fas fa-bars" aria-hidden="true"></span>
+          </button>
+          <div id="gameMenuDropdown" class="game-menu-dropdown hide">
+            <button id="guideMenuButton" type="button" title="Cara bermain">
+              <span class="fas fa-exclamation" aria-hidden="true"></span>
+              <span>Cara bermain</span>
+            </button>
+            <button
+              id="musicMenuButton"
+              type="button"
+              title="Aktifkan atau matikan musik"
+            >
+              <span class="fas fa-music" aria-hidden="true"></span>
+              <span>Musik</span>
+            </button>
+            <button id="infoMenuButton" type="button" title="Informasi kotak">
+              <span class="fas fa-info-circle" aria-hidden="true"></span>
+              <span>Informasi</span>
+            </button>
+            <button
+              id="probabilityMenuButton"
+              type="button"
+              class="probability-menu-item"
+              title="Peluang dadu"
+            >
+              <span class="fas fa-dice" aria-hidden="true"></span>
+              <span>Peluang dadu</span>
+            </button>
+          </div>
+        </div>
         <div id="stormTimerContainer" class="storm-ui-box">
           <div class="storm-header">
             <i class="fas fa-bolt"></i>
@@ -450,6 +504,30 @@
               </div>
             </div>
           </div>
+          <aside
+            class="probability-panel"
+            id="probabilityPanel"
+            aria-label="Peluang dadu"
+          >
+            <div class="probability-panel-heading">
+              <span class="fas fa-dice"></span>
+              <div>
+                <strong>Peluang Dadu</strong>
+                <small>Dadu enam sisi yang adil</small>
+              </div>
+            </div>
+            <div class="probability-content">
+              <p>
+                <strong>Ruang sampel:<br /></strong> {1, 2, 3, 4, 5, 6}
+              </p>
+              <p>
+                <strong>Peluang satu angka:<br /></strong> 1/6 = 16,67%
+              </p>
+              <p>
+                Setiap sisi memiliki peluang yang sama karena dadu yang adil.
+              </p>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
@@ -511,121 +589,133 @@
       </div>
     </div>
 
-    <div class="modal hide" id="guideModal">
-      <div
-        class="modalBody"
-        style="max-width: 650px; text-align: left; padding: 0"
-      >
-        <div style="padding: 25px; border-bottom: 2px solid #eee">
-          <h1 style="margin: 0; color: #2c3e50; text-align: center">
-            Panduan Bermain 📜
-          </h1>
-        </div>
-
-        <div
-          style="
-            max-height: 450px;
-            overflow-y: auto;
-            padding: 25px;
-            line-height: 1.6;
-            color: #444;
-          "
-        >
-          <h3>1. Tujuan Permainan</h3>
-          <p>
-            Menjadi pemain pertama yang mencapai kotak nomor 100 diiringi alunan
-            instrumen khas Sunda. Namun, kamu harus menjawab tantangan
-            matematika untuk bisa melangkah!
-          </p>
-
-          <h3>2. Cara Melangkah</h3>
-          <ul>
-            <li>Klik dadu pada giliranmu.</li>
-            <li>
-              Sistem akan memberikan soal matematika sesuai dengan jenis kotak
-              yang kamu injak.
-            </li>
-            <li>
-              <strong>Jika Jawaban Benar:</strong> Kamu akan maju 1 langkah
-              (atau <strong>Random Bonus</strong> di kotak Misteri).
-            </li>
-            <li>
-              <strong>Jika Jawaban Salah:</strong> Kamu tetap di tempat (atau
-              mundur 1 langkah di kotak Misteri).
-            </li>
-          </ul>
-
-          <h3>3. Jenis-Jenis Kotak</h3>
-          <p>Warna kotak menentukan tantangan yang akan kamu hadapi:</p>
-          <ul>
-            <li>
-              <strong style="color: #9cdcdc">Kotak Putih/Biru Muda:</strong>
-              <strong>FREE BOX.</strong> Kamu aman dan bisa langsung istirahat
-              tanpa soal.
-            </li>
-            <li>
-              <strong style="color: #1f8a4b">Kotak Hijau:</strong> Soal kategori
-              <strong>Mudah</strong> (Peluang dasar).
-            </li>
-            <li>
-              <strong style="color: #f1c40f">Kotak Kuning:</strong> Soal
-              kategori <strong>Standar</strong> (Menengah).
-            </li>
-            <li>
-              <strong style="color: #e65022">Kotak Merah:</strong> Soal kategori
-              <strong>Sulit</strong> (Analisis mendalam).
-            </li>
-            <li>
-              <strong style="color: #9b59b6">Kotak Ungu (Misteri):</strong>
-              Tantangan HOTS. Benar = <strong>Bonus Acak (2-5 Langkah)</strong>.
-              Salah = Mundur 1 langkah.
-            </li>
-          </ul>
-
-          <h3>4. Ular & Tangga (Guardian Gate)</h3>
-          <p>
-            Jika mendarat di tangga atau ular pada
-            <strong>kotak berwarna</strong>, kamu harus membuktikan kemampuanmu:
-          </p>
-          <ul>
-            <li>
-              <strong>Berhasil Jawab:</strong> Kamu berhak naik tangga atau
-              <strong>Selamat</strong> dari gigitan ular.
-            </li>
-            <li>
-              <strong>Gagal Jawab:</strong> Kamu gagal naik atau terpaksa
-              meluncur turun melalui ular.
-            </li>
-          </ul>
-
-          <h3>5. Probability Storm (Badai Probabilitas) ⚡</h3>
-          <p>
-            Waspadalah! Setiap 3 menit, musik akan berubah menjadi tegang
-            (Sabilulungan) menandakan badai muncul. Semua pemain berlomba
-            menjawab satu soal yang sama secara bergantian. Pemain tercepat yang
-            menjawab benar akan mendapatkan <strong>Bonus 3 Langkah</strong>.
-          </p>
-
-          <h3>6. Statistik & Gelar Kehormatan</h3>
-          <p>
-            Di akhir permainan, klasemen akan menampilkan performa setiap
-            pemain. Pemenang akan mendapatkan sertifikat resmi dengan gelar unik
-            seperti <strong>"Sang Arsitek Angka"</strong> atau
-            <strong>"Sang Pemecah Misteri"</strong>.
-          </p>
-        </div>
-
-        <div
-          style="padding: 20px; text-align: center; border-top: 2px solid #eee"
-        >
+    <div
+      class="modal hide"
+      id="probabilityModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="probabilityModalTitle"
+    >
+      <div class="modalBody probability-modal-body">
+        <header class="guide-header">
+          <div>
+            <p class="guide-eyebrow">Konsep dasar</p>
+            <h1 id="probabilityModalTitle">Peluang Dadu</h1>
+          </div>
           <button
-            class="startBtn"
-            onclick="closeGuideModal()"
-            style="width: 100%"
+            id="probabilityModalClose"
+            class="guide-close"
+            type="button"
+            aria-label="Tutup peluang dadu"
           >
-            SAYA MENGERTI
+            <span aria-hidden="true">×</span>
           </button>
+        </header>
+        <div class="probability-modal-icon" aria-hidden="true">
+          <span class="fas fa-dice"></span>
         </div>
+        <div class="probability-modal-content">
+          <p><strong>Ruang sampel:</strong> {1, 2, 3, 4, 5, 6}</p>
+          <p><strong>Peluang satu angka:</strong> 1/6 = 16,67%</p>
+          <p>Setiap sisi memiliki peluang yang sama karena dadu yang adil.</p>
+        </div>
+        <button id="probabilityModalConfirm" class="startBtn" type="button">
+          Mengerti
+        </button>
+      </div>
+    </div>
+
+    <div
+      class="modal hide"
+      id="guideModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="guideTitle"
+    >
+      <div class="modalBody guide-modal-body">
+        <header class="guide-header">
+          <div>
+            <p class="guide-eyebrow">Panduan singkat</p>
+            <h1 id="guideTitle">Cara Bermain</h1>
+          </div>
+          <button
+            class="guide-close"
+            type="button"
+            onclick="closeGuideModal()"
+            aria-label="Tutup panduan"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </header>
+
+        <div class="guide-content">
+          <section class="guide-step">
+            <span class="guide-number">1</span>
+            <div>
+              <h2>Lempar dadu</h2>
+              <p>
+                Klik dadu milik pemain yang sedang giliran untuk mendapatkan
+                angka 1–6.
+              </p>
+            </div>
+          </section>
+          <section class="guide-step">
+            <span class="guide-number">2</span>
+            <div>
+              <h2>Pilih kartu acak</h2>
+              <p>
+                Setelah dadu diketahui, tiga kartu tersembunyi muncul. Pilih
+                satu kartu untuk melihat efeknya.
+              </p>
+            </div>
+          </section>
+          <section class="guide-step">
+            <span class="guide-number">3</span>
+            <div>
+              <h2>Ikuti aturan kartu</h2>
+              <p>
+                Kartu keberuntungan bergerak sesuai dadu, kartu hukuman
+                mengakhiri turn, dan kartu permainan membuka subgame koin.
+              </p>
+            </div>
+          </section>
+          <section class="guide-step">
+            <span class="guide-number">4</span>
+            <div>
+              <h2>Subgame koin</h2>
+              <p>
+                Lempar koin hingga target tercapai. Catat hasil A jika kepala
+                atau G jika gambar muncul.
+              </p>
+            </div>
+          </section>
+          <section class="guide-step">
+            <span class="guide-number">5</span>
+            <div>
+              <h2>Jawab dan lanjutkan</h2>
+              <p>
+                Jawab soal pada kotak warna, lalu hadapi ular, tangga, mystery,
+                dan Probability Storm.
+              </p>
+            </div>
+          </section>
+          <section class="guide-step">
+            <span class="guide-number">6</span>
+            <div>
+              <h2>Menang</h2>
+              <p>
+                Temui kotak nomor 100 dengan benar untuk menyelesaikan permainan
+                dan melihat klasemen.
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <footer class="guide-footer">
+          <button class="startBtn" type="button" onclick="closeGuideModal()">
+            Siap Bermain
+          </button>
+        </footer>
       </div>
     </div>
 
@@ -1141,6 +1231,60 @@
         <h1 id="resultTitle">Jawaban Benar!</h1>
         <p id="resultMessage">Anda akan maju sesuai dadu!</p>
         <button class="startBtn" onclick="closeResultModal()">Lanjut</button>
+      </div>
+    </div>
+
+    <!-- Modal kartu acak -->
+    <div class="modal hide" id="cardModal">
+      <div class="modalBody card-modal-body">
+        <div id="cardIcon" class="card-modal-icon">?</div>
+        <p class="card-modal-kicker">Pilih Kartu Peluang</p>
+        <h1 id="cardTitle">Pilih kartu peluang</h1>
+        <p id="cardDescription">
+          Tiga kartu tersembunyi tersedia. Peluang ada di dalam pilihanmu.
+        </p>
+        <div
+          id="cardDeck"
+          class="card-deck"
+          aria-label="Pilih kartu tersembunyi"
+        ></div>
+        <button
+          class="startBtn hide"
+          id="cardContinue"
+          onclick="closeCardModal()"
+        >
+          Lihat Efek
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal permainan koin -->
+    <div class="modal hide" id="coinModal">
+      <div class="modalBody coin-modal-body">
+        <p class="coin-modal-kicker">Aktivitas Kartu Permainan</p>
+        <h1 id="coinPlayerName">Pemain 1</h1>
+        <h2 id="coinResultTitle">Subgame Koin</h2>
+        <div id="coinFace" class="coin-face" data-outcome="pending">?</div>
+        <p id="coinResultDescription">
+          Lempar koin untuk mendapatkan hasil A atau G.
+        </p>
+        <p id="coinTossCount" class="coin-toss-count">Total Lemparan Koin: 0</p>
+        <div class="coin-goal-card">
+          <span>Goal aktif</span>
+          <strong id="coinGoal">Lemparkan koin sampai target tercapai.</strong>
+          <small id="coinProgress">0 / 0 · A/G</small>
+          <p id="coinExplanation">Catat hasil A atau G sesuai goal.</p>
+        </div>
+        <button id="coinTossButton" class="startBtn" type="button">
+          Lempar Koin
+        </button>
+        <button
+          id="coinContinueButton"
+          class="startBtn coin-continue hide"
+          type="button"
+        >
+          Lanjut
+        </button>
       </div>
     </div>
 

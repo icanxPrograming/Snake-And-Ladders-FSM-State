@@ -1,6 +1,8 @@
 import { Game } from "./core/Game.js";
 import { GameContext } from "./core/GameContext.js";
 import { GameState } from "./core/GameState.js";
+import { CardSystem } from "./systems/CardSystem.js";
+import { CoinSystem } from "./systems/CoinSystem.js";
 import { DiceSystem } from "./systems/DiceSystem.js";
 import { MovementSystem } from "./systems/MovementSystem.js";
 import { PlayerSystem } from "./systems/PlayerSystem.js";
@@ -9,12 +11,18 @@ import { ScoreSystem } from "./systems/ScoreSystem.js";
 import { TurnSystem } from "./systems/TurnSystem.js";
 import { WinConditionSystem } from "./systems/WinConditionSystem.js";
 import { BoardUI } from "./ui/BoardUI.js";
+import { CardUI } from "./ui/CardUI.js";
+import { CoinUI } from "./ui/CoinUI.js";
 import { CertificateUI } from "./ui/CertificateUI.js";
 import { DiceUI } from "./ui/DiceUI.js";
 import { GameUI } from "./ui/GameUI.js";
 import { MenuUI } from "./ui/MenuUI.js";
 import { ModalUI } from "./ui/ModalUI.js";
 import { QuestionUI } from "./ui/QuestionUI.js";
+import { CardDrawState } from "./states/CardDrawState.js";
+import { CardResultState } from "./states/CardResultState.js";
+import { CoinDrawState } from "./states/CoinDrawState.js";
+import { CoinResultState } from "./states/CoinResultState.js";
 import { GameSetupState } from "./states/GameSetupState.js";
 import { CertificateState } from "./states/CertificateState.js";
 import { GameOverState } from "./states/GameOverState.js";
@@ -30,6 +38,8 @@ import { RollingDiceState } from "./states/RollingDiceState.js";
 import { TurnTransitionState } from "./states/TurnTransitionState.js";
 
 let game;
+const cardSystem = new CardSystem();
+const coinSystem = new CoinSystem();
 const diceSystem = new DiceSystem();
 const movementSystem = new MovementSystem();
 const playerSystem = new PlayerSystem();
@@ -38,6 +48,8 @@ const scoreSystem = new ScoreSystem();
 const turnSystem = new TurnSystem();
 const winConditionSystem = new WinConditionSystem();
 const boardUI = new BoardUI();
+const cardUI = new CardUI();
+const coinUI = new CoinUI();
 const certificateUI = new CertificateUI();
 const diceUI = new DiceUI();
 const gameUI = new GameUI();
@@ -245,14 +257,107 @@ const downloadCertificate = () => {
 };
 
 // Fungsi membuka modal panduan
+const TUTORIAL_STORAGE_KEY = "snares-and-ladders-tutorial-seen";
+
+const hasSeenTutorial = () => {
+  try {
+    return localStorage.getItem(TUTORIAL_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
+
+const markTutorialSeen = () => {
+  try {
+    localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
+  } catch {
+    // The game remains playable when storage is unavailable.
+  }
+};
+
 const openGuideModal = () => {
   modalUI.show("guideModal");
 };
 
 // Fungsi menutup modal panduan
 const closeGuideModal = () => {
+  markTutorialSeen();
   modalUI.hide("guideModal");
 };
+
+const toggleGameMenu = () => {
+  const toggle = document.getElementById("gameMenuToggle");
+  const dropdown = document.getElementById("gameMenuDropdown");
+  if (!toggle || !dropdown) return;
+
+  const isOpen = !dropdown.classList.contains("hide");
+  dropdown.classList.toggle("hide", isOpen);
+  toggle.setAttribute("aria-expanded", String(!isOpen));
+  toggle.setAttribute(
+    "aria-label",
+    isOpen ? "Buka menu game" : "Tutup menu game",
+  );
+};
+
+const closeGameMenu = () => {
+  const toggle = document.getElementById("gameMenuToggle");
+  const dropdown = document.getElementById("gameMenuDropdown");
+  dropdown?.classList.add("hide");
+  toggle?.setAttribute("aria-expanded", "false");
+  toggle?.setAttribute("aria-label", "Buka menu game");
+};
+
+const menuToggle = document.getElementById("gameMenuToggle");
+const guideMenuButton = document.getElementById("guideMenuButton");
+const musicMenuButton = document.getElementById("musicMenuButton");
+const infoMenuButton = document.getElementById("infoMenuButton");
+const probabilityMenuButton = document.getElementById("probabilityMenuButton");
+
+menuToggle?.addEventListener("click", toggleGameMenu);
+guideMenuButton?.addEventListener("click", () => {
+  openGuideModal();
+  closeGameMenu();
+});
+musicMenuButton?.addEventListener("click", () => {
+  toggleMusic();
+  closeGameMenu();
+});
+infoMenuButton?.addEventListener("click", () => {
+  openInfoModal();
+  closeGameMenu();
+});
+probabilityMenuButton?.addEventListener("click", () => {
+  openProbabilityInfo();
+  closeGameMenu();
+});
+
+const openProbabilityInfo = () => {
+  const panel = document.getElementById("probabilityPanel");
+  const modal = document.getElementById("probabilityModal");
+  const isCompact = window.matchMedia("(max-width: 1360px)").matches;
+
+  if (!panel || !modal) return;
+  if (isCompact) {
+    modalUI.show("probabilityModal");
+    return;
+  }
+
+  panel.scrollIntoView({ behavior: "smooth", block: "center" });
+  panel.classList.add("is-highlighted");
+  window.setTimeout(() => panel.classList.remove("is-highlighted"), 1200);
+};
+
+const closeProbabilityModal = () => {
+  modalUI.hide("probabilityModal");
+};
+
+const probabilityModalClose = document.getElementById("probabilityModalClose");
+const probabilityModalConfirm = document.getElementById(
+  "probabilityModalConfirm",
+);
+
+probabilityModalClose?.addEventListener("click", closeProbabilityModal);
+probabilityModalConfirm?.addEventListener("click", closeProbabilityModal);
 
 // Ambil elemen BGM
 const bgm = document.getElementById("bgmAudio");
@@ -466,6 +571,9 @@ const getFallbackQuestions = (difficulty) => {
 
 // Panggil load questions saat awal
 loadQuestions();
+coinSystem.loadGoals().catch((error) => {
+  console.warn("Coin goals fallback used:", error.message);
+});
 
 // ===== Random Question =====
 const getRandomQuestion = () => {
@@ -482,6 +590,8 @@ let currentPlayerTemp = 0;
 let isRolling = false;
 let questionTimer = null;
 let currentTurnPlayer = 1;
+let currentDiceValue = 0;
+let currentCoinGoal = null;
 let isProcessingAnswer = false; // Flag baru untuk mencegah double processing
 
 const selectAnswer = (answerIndex) => {
@@ -538,14 +648,15 @@ const submitAnswer = (question, answer) => {
   isProcessingAnswer = true;
   if (questionTimer) clearInterval(questionTimer);
 
-  const { correct, message } = questionSystem.evaluateAnswer(question, answer);
-  transitionGame(GameState.QUESTION_RESULT, { correct, message });
+  const { correct, message, explanation } = questionSystem.evaluateAnswer(
+    question,
+    answer,
+  );
+  transitionGame(GameState.QUESTION_RESULT, { correct, message, explanation });
   const pIdx = currentPlayerTemp - 1;
   scoreSystem.recordAnswer(players[pIdx], currentQuestion, correct);
 
-  if (question.explanation) {
-    questionUI.showExplanation(question.explanation);
-  }
+  questionUI.showExplanation(explanation);
 
   setTimeout(() => {
     questionUI.hide();
@@ -568,7 +679,7 @@ const submitAnswer = (question, answer) => {
         setTimeout(() => {
           finishStorm(true);
           closeResultModal();
-          movePot(3, currentPlayerTemp, true);
+          movePot(3, currentPlayerTemp, true, false, "storm");
         }, 2000);
       } else {
         isProcessingAnswer = false;
@@ -699,7 +810,13 @@ const handleMoveAfterQuestion = (isCorrect) => {
       isProcessingAnswer = false;
       setTimeout(() => {
         closeResultModal();
-        movePot(selectedReward.value, currentPlayerTemp, true);
+        movePot(
+          selectedReward.value,
+          currentPlayerTemp,
+          true,
+          false,
+          "mysteryBonus",
+        );
       }, 2000);
       return; // Berhenti di sini agar tidak menjalankan movePot di bawah lagi
     } else {
@@ -714,15 +831,15 @@ const handleMoveAfterQuestion = (isCorrect) => {
   isProcessingAnswer = false;
 
   if (moveValue !== 0) {
-    movePot(moveValue, currentPlayerTemp, true);
+    movePot(moveValue, currentPlayerTemp, true, false, "question");
   } else {
     finalizeTurn(currentPlayerTemp);
   }
 };
 
 // ===== Tampilkan hasil jawaban =====
-const showAnswerResult = (isCorrect, message) => {
-  modalUI.showAnswerResult(isCorrect, message);
+const showAnswerResult = (isCorrect, message, explanation = "") => {
+  modalUI.showAnswerResult(isCorrect, message, explanation);
 };
 
 const closeResultModal = () => {
@@ -773,10 +890,157 @@ const checkTileTrigger = (currentScore, playerNo) => {
   }
 };
 
+const drawCardForCurrentPlayer = (playerNo) => {
+  const deck = cardSystem.drawDeck(3);
+  const entered = transitionGame(GameState.CARD_DRAW, {
+    deck,
+    playerNumber: playerNo,
+  });
+
+  if (!entered) {
+    cardUI.showDeck(playerNo, deck);
+  }
+};
+
+const presentCard = ({ deck, playerNumber }) => {
+  cardUI.showDeck(playerNumber, deck);
+};
+
+const selectCard = (index) => {
+  const event = game?.context?.event;
+  const card = event?.deck?.[index];
+  if (!event?.playerNumber || !card) return;
+
+  cardUI.hide();
+  transitionGame(GameState.CARD_RESULT, {
+    ...event,
+    card,
+    diceValue: currentDiceValue,
+  });
+};
+
+const presentCardResult = ({ card, playerNumber, diceValue }) => {
+  const player = players[playerNumber - 1];
+  if (!player) return;
+
+  const result = cardSystem.resolveEffect(card, player.score, diceValue);
+  cardUI.showResult(card);
+
+  if (result.action === "move") {
+    showAnswerResult(
+      true,
+      `${card.name}: ${result.movement} langkah bergerak dari dadu ${diceValue}.`,
+    );
+    setTimeout(() => {
+      closeResultModal();
+      movePot(result.movement, playerNumber, false, false, "dice");
+    }, 1600);
+    return;
+  }
+
+  if (result.action === "coin") {
+    currentCoinGoal = coinSystem.startGoal();
+    showAnswerResult(true, `${card.name}: Buka subgame koin.`);
+    setTimeout(() => {
+      closeResultModal();
+      transitionGame(GameState.COIN_DRAW, {
+        playerNumber,
+        goal: currentCoinGoal,
+      });
+    }, 1600);
+    return;
+  }
+
+  showAnswerResult(false, `${card.name}: ${card.description}`);
+  setTimeout(() => {
+    closeResultModal();
+    transitionGame(GameState.TURN_TRANSITION);
+  }, 1600);
+};
+
+const closeCardModal = () => {
+  cardUI.hide();
+};
+
+const presentCoin = ({ playerNumber, goal }) => {
+  currentCoinGoal = goal;
+  coinUI.show(playerNumber, goal);
+};
+
+const tossCoin = () => {
+  const event = game?.context?.event;
+  const currentState = game?.stateMachine?.currentState;
+  if (
+    currentState !== GameState.COIN_DRAW &&
+    currentState !== GameState.COIN_RESULT
+  )
+    return;
+  if (!event?.playerNumber || !currentCoinGoal) return;
+
+  coinUI.recordToss();
+  const result = coinSystem.toss(currentCoinGoal);
+  const coinEvent = {
+    ...event,
+    ...result,
+  };
+
+  if (currentState === GameState.COIN_DRAW) {
+    transitionGame(GameState.COIN_RESULT, coinEvent);
+    return;
+  }
+
+  game.context.event = structuredClone(coinEvent);
+  presentCoinResult(coinEvent);
+};
+
+const presentCoinResult = ({
+  playerNumber,
+  outcome,
+  side,
+  label,
+  description,
+  goalComplete,
+  goal,
+}) => {
+  coinUI.showResult({
+    outcome,
+    side,
+    label,
+    description,
+    goalComplete,
+    goal,
+  });
+};
+
+const continueCoin = () => {
+  const event = game?.context?.event;
+  if (!event?.playerNumber) return;
+
+  const goalComplete = Boolean(currentCoinGoal?.goalComplete);
+  if (!goalComplete) {
+    coinUI.hide();
+    transitionGame(GameState.COIN_DRAW, {
+      playerNumber: event.playerNumber,
+      goal: currentCoinGoal,
+    });
+    return;
+  }
+
+  coinUI.hide();
+  const movement = currentDiceValue;
+  currentCoinGoal = null;
+  movePot(movement, event.playerNumber, false, false);
+};
+
+const coinTossButton = document.getElementById("coinTossButton");
+const coinContinueButton = document.getElementById("coinContinueButton");
+
+coinTossButton?.addEventListener("click", tossCoin);
+coinContinueButton?.addEventListener("click", continueCoin);
+
 const finalizeTurn = (playerNo) => {
   isRolling = false;
   isProcessingAnswer = false;
-  checkSnakeAndLadder(players[playerNo - 1].score, playerNo);
   nextTurn();
 };
 
@@ -853,15 +1117,34 @@ const presentTileQuestion = (tileType) => {
   });
 };
 
-const movePot = (value, playerNumber, isBonusMove = false) => {
+const movePot = (
+  value,
+  playerNumber,
+  isBonusMove = false,
+  drawCardAfterMove = true,
+  source = isBonusMove ? "bonus" : "dice",
+) => {
   console.log(`movePot START: Player ${playerNumber} moving ${value}`);
   if (playerNumber < 1 || playerNumber > playersCount) return;
-  const event = { kind: "move", value, playerNumber, isBonusMove };
+  const event = {
+    kind: "move",
+    value,
+    playerNumber,
+    isBonusMove,
+    drawCardAfterMove,
+    source,
+  };
   const entered = transitionGame(GameState.MOVING_PLAYER, event);
   if (!entered) performPlayerMove(event);
 };
 
-const performPlayerMove = ({ value, playerNumber, isBonusMove }) => {
+const performPlayerMove = ({
+  value,
+  playerNumber,
+  isBonusMove,
+  drawCardAfterMove,
+  source,
+}) => {
   let player = players[playerNumber - 1];
   let startScore = player.score;
   const destination = movementSystem.calculateDestination(startScore, value);
@@ -913,18 +1196,29 @@ const performPlayerMove = ({ value, playerNumber, isBonusMove }) => {
         return; // BERHENTI: Jangan cek tangga/ular lagi
       }
 
-      const ladderIdx =
-        movementSystem.findLadderIndices(player.score, ladders)[0] ?? -1;
-      const snakeIdx =
-        movementSystem.findSnakeIndices(player.score, snakes)[0] ?? -1;
-      const isSpecialTile =
-        movementSystem.getTileDifficulty(player.score, specialTiles) !== null;
+      // --- 2. DRAW KARTU SETELAH DICE DAN SEBELUM TILE RESOLUTION ---
+      if (drawCardAfterMove) {
+        drawCardForCurrentPlayer(playerNumber);
+        return;
+      }
 
-      // --- 2. LOGIKA GUARDIAN GATE (Tangga/Ular di Kotak Soal) ---
-      if ((ladderIdx !== -1 || snakeIdx !== -1) && isSpecialTile) {
+      const postMove = movementSystem.resolvePostMove({
+        position: player.score,
+        source,
+        specialTiles,
+        ladders,
+        snakes,
+      });
+
+      // --- 3. GUARDIAN/GATE: Kotak soal yang menghubungi ular/tangga ---
+      if (postMove.action === "guardian") {
         pendingFate = {
-          type: ladderIdx !== -1 ? "LADDER" : "SNAKE",
-          index: ladderIdx !== -1 ? ladderIdx : snakeIdx,
+          type:
+            postMove.index ===
+            ladders.findIndex((ladder) => ladder[0] === player.score)
+              ? "LADDER"
+              : "SNAKE",
+          index: postMove.index,
           playerNo: playerNumber,
         };
 
@@ -943,32 +1237,35 @@ const performPlayerMove = ({ value, playerNumber, isBonusMove }) => {
           closeResultModal();
           checkTileTrigger(player.score, playerNumber);
         }, 2000);
-
-        return; // PENTING: Berhenti di sini agar tidak memicu nextTurn di bawah
+        return;
       }
 
-      // --- 3. TANGGA / ULAR NORMAL (Kotak Putih/Free) ---
-      if (ladderIdx !== -1 || snakeIdx !== -1) {
+      // --- 4. SOAL DARI PROBABILITY STORM SAJANA ---
+      if (postMove.action === "question") {
+        askQuestionOnTile(playerNumber, postMove.tileType);
+        return;
+      }
+
+      // --- 5. ULAR/TANGGA BIASA ---
+      if (postMove.action === "ladder") {
         pendingFate = null;
-        checkSnakeAndLadder(player.score, playerNumber);
-        // Kita tidak memanggil nextTurn di sini karena akan di-handle oleh
-        // specialMove/specialMoveSnake setelah animasi meluncur selesai.
-        return; // PENTING: Berhenti di sini
+        checkLadder(player.score, playerNumber);
+        return;
       }
 
-      // --- 4. KOTAK BIASA (Tidak ada Tangga/Ular) ---
+      if (postMove.action === "snake") {
+        pendingFate = null;
+        checkSnake(player.score, playerNumber);
+        return;
+      }
+
+      // --- 6. KOTAK BIASA ATAU PETAK SOAL DARI JAWABAN ---
       const actionDelay = 800;
       setTimeout(() => {
-        if (isBonusMove) {
-          isRolling = false;
-          if (isStormActive) {
-            finishStorm(true);
-          } else {
-            nextTurn();
-          }
+        if (isBonusMove && isStormActive) {
+          finishStorm(true);
         } else {
-          // Cek apakah mendarat di kotak soal biasa
-          checkTileTrigger(player.score, playerNumber);
+          transitionGame(GameState.TURN_TRANSITION);
         }
       }, actionDelay);
     }
@@ -1002,16 +1299,17 @@ const performDiceRoll = (playerNo) => {
 
   // Ambil angka dadu acak
   const diceNumber = diceSystem.roll(diceArray);
+  currentDiceValue = diceNumber;
 
   // FASE 1: Selesaikan animasi putar dadu (500ms)
   setTimeout(() => {
     diceUI.showRoll(playerNo, diceNumber);
 
     // FASE 2: Beri jeda agar pemain bisa melihat angka dadu dengan jelas (1000ms)
-    // Baru setelah jeda ini, pion mulai bergerak
+    // Baru setelah jeda ini, kartu tiga pilihan muncul sebelum gerakan.
     setTimeout(() => {
       console.log(`Dadu berhenti di angka ${diceNumber}. Pion mulai jalan...`);
-      movePot(diceNumber, playerNo);
+      drawCardForCurrentPlayer(playerNo);
     }, 1000);
   }, 500);
 };
@@ -1187,6 +1485,10 @@ const setupGame = () => {
 
   startStormCountdown(); // MULAI COUNTDOWN BADAI DI SINI
   transitionGame(GameState.PLAYING);
+
+  if (!hasSeenTutorial()) {
+    setTimeout(() => openGuideModal(), 800);
+  }
 
   console.log(
     `Game started with ${playersCount} players. First turn: Player ${currentTurnPlayer}`,
@@ -1547,12 +1849,16 @@ gameContext.actions = {
   advanceTurn,
   rollDice: performDiceRoll,
   movePlayer: performPlayerMove,
+  presentCard,
+  presentCardResult,
+  presentCoin,
+  presentCoinResult,
   animateLadder,
   animateSnake,
   presentTileQuestion,
   presentNextStormPlayer,
-  showQuestionResult: ({ correct, message }) =>
-    showAnswerResult(correct, message),
+  showQuestionResult: ({ correct, message, explanation }) =>
+    showAnswerResult(correct, message, explanation),
   beginProbabilityStorm,
   onGameOver: handleGameOver,
   showCertificate: renderCertificate,
@@ -1567,6 +1873,10 @@ game = new Game({
     [GameState.PLAYING]: new PlayingState(),
     [GameState.TURN_TRANSITION]: new TurnTransitionState(),
     [GameState.ROLLING_DICE]: new RollingDiceState(),
+    [GameState.CARD_DRAW]: new CardDrawState(),
+    [GameState.CARD_RESULT]: new CardResultState(),
+    [GameState.COIN_DRAW]: new CoinDrawState(),
+    [GameState.COIN_RESULT]: new CoinResultState(),
     [GameState.MOVING_PLAYER]: new MovingPlayerState(),
     [GameState.GAME_OVER]: new GameOverState(),
     [GameState.CERTIFICATE]: new CertificateState(),
@@ -1599,6 +1909,10 @@ Object.assign(window, {
   closeInfoModal,
   closeQuestionModal,
   closeResultModal,
+  closeCardModal,
+  selectCard,
+  tossCoin,
+  continueCoin,
 });
 
 initialState();

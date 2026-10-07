@@ -2,6 +2,15 @@
 
 This project is a vanilla JavaScript browser game. The FSM owns game-flow transitions. Systems contain reusable game calculations, UI modules own DOM presentation, and `script.js` currently composes the systems, states, data, timers, and audio callbacks.
 
+## Current Implementation Status
+
+- **Core gameplay:** implemented and covered by FSM and system tests.
+- **Card system:** implemented with deterministic weighted categories and effect resolution.
+- **Coin system:** implemented as a separate draw/result lifecycle.
+- **Educational feedback:** implemented for correct, incorrect, invalid, and timed-out answers.
+- **Automated regression:** 25 tests passing.
+- **Browser smoke test:** active page loads successfully; full cross-browser interaction testing remains pending.
+
 ## Structure
 
 ```text
@@ -64,11 +73,21 @@ stateDiagram-v2
   PLAYING --> QUESTION
   PLAYING --> PROBABILITY_STORM
   ROLLING_DICE --> MOVING_PLAYER
+  ROLLING_DICE --> CARD_DRAW
   MOVING_PLAYER --> MOVING_PLAYER
+  MOVING_PLAYER --> CARD_DRAW
   MOVING_PLAYER --> QUESTION
   MOVING_PLAYER --> MYSTERY
   MOVING_PLAYER --> TURN_TRANSITION
   MOVING_PLAYER --> GAME_OVER
+  CARD_DRAW --> CARD_RESULT
+  CARD_RESULT --> COIN_DRAW
+  CARD_RESULT --> MOVING_PLAYER
+  CARD_RESULT --> PLAYING
+  COIN_DRAW --> COIN_RESULT
+  COIN_RESULT --> MOVING_PLAYER
+  COIN_RESULT --> TURN_TRANSITION
+  COIN_RESULT --> PLAYING
   QUESTION --> QUESTION_RESULT
   QUESTION --> MOVING_PLAYER
   QUESTION --> TURN_TRANSITION

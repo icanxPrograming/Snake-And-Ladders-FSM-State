@@ -1,0 +1,72 @@
+[
+  {
+    "id": "coin-1",
+    "goal": "Lemparkan koin sampai mendapat sisi angka sebanyak 4 kali",
+    "target": 4,
+    "targetSide": "A",
+    "explanation": "Peluang mendapatkan sisi angka A dalam satu lemparan dapat dituliskan dengan rumus P(A) = n(A) / n(S). Target keberhasilan dihitung hingga n(A) mencapai 4 kali."
+  },
+  {
+    "id": "coin-2",
+    "goal": "Lemparkan koin sampai mendapat sisi gambar sebanyak 4 kali",
+    "target": 4,
+    "targetSide": "G",
+    "explanation": "Peluang mendapatkan sisi gambar G dalam satu lemparan dapat dituliskan dengan rumus P(G) = n(G) / n(S). Target keberhasilan dihitung hingga n(G) mencapai 4 kali."
+  },
+  {
+    "id": "coin-3",
+    "goal": "Lemparkan koin sampai mendapat sisi angka sebanyak 6 kali",
+    "target": 6,
+    "targetSide": "A",
+    "explanation": "Peluang mendapatkan sisi angka A dapat dinyatakan dengan P(A) = n(A) / n(S). Jumlah keberhasilan dinyatakan dengan n(A) dan terus bertambah hingga mencapai 6 kali."
+  },
+  {
+    "id": "coin-4",
+    "goal": "Lemparkan koin sampai mendapat sisi gambar sebanyak 6 kali",
+    "target": 6,
+    "targetSide": "G",
+    "explanation": "Peluang mendapatkan sisi gambar G dapat dinyatakan dengan P(G) = n(G) / n(S). Jumlah keberhasilan dinyatakan dengan n(G) dan terus bertambah hingga mencapai 6 kali."
+  },
+  {
+    "id": "coin-5",
+    "goal": "Lemparkan koin sampai mendapat sisi angka sebanyak 8 kali",
+    "target": 8,
+    "targetSide": "A",
+    "explanation": "Peluang mendapatkan sisi angka A dalam setiap lemparan adalah P(A) = n(A) / n(S). Keberhasilan dihitung berdasarkan jumlah kemunculan A hingga n(A) mencapai 8 kali."
+  },
+  {
+    "id": "coin-6",
+    "goal": "Lemparkan koin sampai mendapat sisi gambar sebanyak 8 kali",
+    "target": 8,
+    "targetSide": "G",
+    "explanation": "Peluang mendapatkan sisi gambar G dalam setiap lemparan adalah P(G) = n(G) / n(S). Keberhasilan dihitung berdasarkan jumlah kemunculan G hingga n(G) mencapai 8 kali."
+  },
+  {
+    "id": "coin-7",
+    "goal": "Lemparkan koin sampai mendapat sisi angka sebanyak 10 kali",
+    "target": 10,
+    "targetSide": "A",
+    "explanation": "Peluang mendapatkan sisi angka A dapat ditentukan dengan rumus P(A) = n(A) / n(S). Setiap kemunculan A menambah jumlah keberhasilan hingga n(A) mencapai 10 kali."
+  },
+  {
+    "id": "coin-8",
+    "goal": "Lemparkan koin sampai mendapat sisi gambar sebanyak 10 kali",
+    "target": 10,
+    "targetSide": "G",
+    "explanation": "Peluang mendapatkan sisi gambar G dapat ditentukan dengan rumus P(G) = n(G) / n(S). Setiap kemunculan G menambah jumlah keberhasilan hingga n(G) mencapai 10 kali."
+  },
+  {
+    "id": "coin-9",
+    "goal": "Lemparkan koin sampai mendapat sisi angka sebanyak 12 kali",
+    "target": 12,
+    "targetSide": "A",
+    "explanation": "Peluang mendapatkan sisi angka A dinyatakan dengan P(A) = n(A) / n(S). Kemajuan target dihitung dari banyaknya kemunculan A hingga n(A) mencapai 12 kali."
+  },
+  {
+    "id": "coin-10",
+    "goal": "Lemparkan koin sampai mendapat sisi gambar sebanyak 12 kali",
+    "target": 12,
+    "targetSide": "G",
+    "explanation": "Peluang mendapatkan sisi gambar G dinyatakan dengan P(G) = n(G) / n(S). Kemajuan target dihitung dari banyaknya kemunculan G hingga n(G) mencapai 12 kali."
+  }
+]

@@ -2,6 +2,12 @@
 
 Sebuah permainan edukasi interaktif berbasis web yang menggabungkan mekanisme klasik Ular Tangga dengan tantangan Matematika (Materi Peluang) serta sentuhan budaya lokal. Proyek ini dirancang untuk membuat belajar probabilitas menjadi lebih seru, kompetitif, dan memiliki identitas visual serta auditori yang unik.
 
+## 📋 Status Pengembangan
+
+Proyek saat ini berada pada **Phase 8 — Finalisasi Dokumentasi dan Development Report**. Implementasi utama, card/coin lifecycle, educational feedback, dan regression testing telah selesai. Validasi otomatis mencatat **25 test lulus** dengan **0 kegagalan**.
+
+Lihat [DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md) untuk status lengkap, list tugas, risikon, dan hasil validasi. Lihat [DEVELOPMENT_REPORT.md](DEVELOPMENT_REPORT.md) untuk laporan pekerjaan dan catatan release readiness.
+
 ## ✨ Fitur Utama
 
 ### 🎮 Mekanisme Inti

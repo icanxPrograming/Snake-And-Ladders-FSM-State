@@ -359,6 +359,10 @@ button:hover {
     flex-direction: column;
     gap: 12px;
   }
+
+  .probability-panel {
+    display: none;
+  }
 }
 @media only screen and (max-width: 700px) {
   .boardArea {
@@ -491,6 +495,12 @@ button:hover {
   font-size: 20px;
   font-weight: 300;
 }
+
+.probability-panel .probability-panel-heading,
+.probability-panel .probability-content {
+  font-size: 17px;
+}
+
 /* ===== RESPONSIVE STYLES YANG DIPERBAIKI ===== */
 
 /* Tablet Landscape dan Desktop Kecil (768px - 1024px) */
@@ -628,11 +638,11 @@ button:hover {
   }
 
   .bigBoard {
-    width: calc(var(--box) * 8);
+    width: min(100%, calc(var(--box) * 8));
   }
 
   .potsBoard {
-    width: calc(var(--box) * 8);
+    width: min(100%, calc(var(--box) * 8));
   }
 
   .gamePlayers {
@@ -807,11 +817,11 @@ button:hover {
   }
 
   .bigBoard {
-    width: calc(var(--box) * 7);
+    width: min(100%, calc(var(--box) * 7));
   }
 
   .potsBoard {
-    width: calc(var(--box) * 7);
+    width: min(100%, calc(var(--box) * 7));
   }
 
   .board {
@@ -951,11 +961,11 @@ button:hover {
 
   /* Screen 3 */
   .bigBoard {
-    width: calc(var(--box) * 6.5);
+    width: min(100%, calc(var(--box) * 6.5));
   }
 
   .potsBoard {
-    width: calc(var(--box) * 6.5);
+    width: min(100%, calc(var(--box) * 6.5));
   }
 
   .playersBox {
@@ -1072,11 +1082,11 @@ button:hover {
 
   /* Screen 3 */
   .bigBoard {
-    width: calc(var(--box) * 6);
+    width: min(100%, calc(var(--box) * 6));
   }
 
   .potsBoard {
-    width: calc(var(--box) * 6);
+    width: min(100%, calc(var(--box) * 6));
   }
 
   .level1 img {
@@ -1315,6 +1325,213 @@ button:hover {
   padding: 16px;
   text-align: center;
 }
+.card-modal-body {
+  max-width: 500px;
+  background: linear-gradient(145deg, #2d3e50, #1f2937);
+  border: 3px solid #f1c40f;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+.card-modal-icon {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f1c40f, #e67e22);
+  color: #fff;
+  font-size: 48px;
+  box-shadow: 0 0 30px rgba(241, 196, 15, 0.35);
+}
+.card-modal-kicker {
+  color: #f1c40f;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.card-modal-body h1 {
+  margin: 32px 0 12px;
+  color: #fff;
+  font-size: 34px;
+}
+.card-modal-body p:not(.card-modal-kicker) {
+  max-width: 390px;
+  margin: 0 auto 24px;
+  color: #e7edf2;
+  font-size: 20px;
+  line-height: 1.4;
+}
+.card-deck {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+.card-deck.is-revealed {
+  display: flex;
+  justify-content: center;
+}
+.card-choice {
+  min-height: 230px;
+  padding: 18px 14px;
+  border: 2px solid rgba(241, 196, 15, 0.65);
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(155deg, #3d5268, #1f2937);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.card-choice:hover,
+.card-choice:focus-visible {
+  transform: translateY(-5px);
+  border-color: #f1c40f;
+  box-shadow: 0 14px 30px rgba(241, 196, 15, 0.3);
+  outline: none;
+}
+.card-choice-icon {
+  display: block;
+  margin-bottom: 16px;
+  color: #f1c40f;
+  font-size: 38px;
+}
+.card-choice strong,
+.card-choice span {
+  display: block;
+}
+.card-choice strong {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+.card-choice span:last-child {
+  color: #dce6ee;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.card-revealed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 420px);
+  min-height: 230px;
+  padding: 20px;
+  border: 2px solid rgba(241, 196, 15, 0.7);
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(155deg, #3d5268, #1f2937);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+.card-revealed-icon {
+  display: block;
+  margin-bottom: 12px;
+  color: #f1c40f;
+  font-size: 28px;
+}
+.card-revealed strong,
+.card-revealed-description {
+  display: block;
+}
+.card-revealed strong {
+  margin-bottom: 8px;
+  font-size: 24px;
+}
+.card-revealed-description {
+  max-width: 390px;
+  margin: 0 auto;
+  color: #e7edf2;
+  font-size: 18px;
+  line-height: 1.45;
+}
+.coin-modal-body {
+  max-width: 500px;
+  background: linear-gradient(145deg, #1f6f8b, #183b5a);
+  border: 3px solid #7fe3ff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+.coin-modal-kicker {
+  color: #7fe3ff;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.coin-modal-body h1 {
+  margin: 10px 0 18px;
+  color: #fff;
+  font-size: 34px;
+}
+.coin-face {
+  width: 110px;
+  height: 110px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 5px solid #fff;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f1c40f, #d35400);
+  color: #fff;
+  font-size: 48px;
+  font-weight: bold;
+  box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.2);
+}
+.coin-face[data-outcome="heads"] {
+  background: linear-gradient(145deg, #2ecc71, #1e8449);
+}
+.coin-face[data-outcome="tails"] {
+  background: linear-gradient(145deg, #7f8c8d, #4a5a5b);
+}
+.coin-modal-body p:not(.coin-modal-kicker) {
+  margin: 0 auto 24px;
+  color: #e7edf2;
+  font-size: 20px;
+  line-height: 1.4;
+}
+.coin-toss-count {
+  margin: -8px auto 18px !important;
+  color: #7fe3ff !important;
+  font-size: 18px !important;
+  font-weight: bold;
+}
+.coin-goal-card {
+  max-width: 420px;
+  margin: 0 auto 24px;
+  padding: 16px;
+  border: 2px solid rgba(127, 227, 255, 0.6);
+  border-radius: 16px;
+  color: #fff;
+  background: rgba(8, 36, 55, 0.42);
+  text-align: left;
+}
+.coin-goal-card span,
+.coin-goal-card small {
+  display: block;
+  color: #7fe3ff;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.coin-goal-card strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 18px;
+}
+.coin-goal-card p {
+  margin: 8px 0 0 !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+.coin-continue {
+  margin-top: 10px;
+  background: linear-gradient(to right, #3498db, #2c7fa4);
+}
 .modalBody img {
   width: 240px;
   aspect-ratio: 1;
@@ -1324,6 +1541,118 @@ button:hover {
   margin: 32px 0 0 0;
   font-size: 24px;
 }
+
+.guide-modal-body {
+  max-width: 720px;
+  padding: 0;
+  overflow: hidden;
+  color: #2c3e50;
+  background: linear-gradient(145deg, #fffdf2, #fff);
+  border: 3px solid #2455db;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  color: #fff;
+  background: linear-gradient(135deg, #2455db, #6d94ff);
+}
+
+.guide-header h1 {
+  margin: 3px 0 0;
+  font-size: 34px;
+}
+
+.guide-eyebrow {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.guide-close {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.guide-close:hover,
+.guide-close:focus-visible {
+  background: rgba(255, 255, 255, 0.25);
+  outline: none;
+}
+
+.guide-content {
+  max-height: min(58dvh, 580px);
+  overflow-y: auto;
+  padding: 24px 28px;
+  scrollbar-width: thin;
+  scrollbar-color: #2455db #e9edf5;
+}
+
+.guide-step {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 16px;
+  align-items: start;
+  padding: 16px 0;
+  border-bottom: 1px solid #e5e9f0;
+}
+
+.guide-step:last-child {
+  border-bottom: 0;
+}
+
+.guide-number {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #2455db;
+  box-shadow: 0 6px 16px rgba(36, 85, 219, 0.25);
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.guide-step h2 {
+  margin: 2px 0 5px;
+  font-size: 22px;
+}
+
+.guide-step p {
+  margin: 0;
+  color: #56606b;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.guide-footer {
+  padding: 20px 28px 24px;
+  text-align: center;
+  background: #f3f6fb;
+  border-top: 1px solid #e5e9f0;
+}
+
+.guide-footer .startBtn {
+  width: min(280px, 100%);
+  margin: 0;
+}
+
 .hide {
   display: none;
 }
@@ -1694,6 +2023,186 @@ button:hover {
   }
 }
 
+.game-action-cluster {
+  position: absolute;
+  top: 18px;
+  z-index: 120;
+  display: flex;
+  gap: 10px;
+}
+
+.game-action-cluster-left {
+  left: 18px;
+}
+
+#gameActionClusterLeft {
+  display: none;
+}
+
+.game-action-cluster-right {
+  right: 18px;
+}
+
+.game-action-btn,
+.ui-round-btn {
+  width: 46px;
+  height: 46px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(44, 62, 80, 0.92);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.game-action-btn:hover,
+.ui-round-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+  background: #2980b9;
+}
+
+.game-action-btn .material-symbols-outlined,
+.ui-round-btn .material-symbols-outlined {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.probability-btn {
+  background: linear-gradient(135deg, #8e44ad, #6c3480);
+}
+
+.probability-panel {
+  width: 100%;
+  max-width: 900px;
+  margin: 24px auto 24px;
+  padding: 16px 20px;
+  border: 2px solid #8e44ad;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #2c3e50;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.game-menu {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 130;
+}
+
+.game-menu-toggle {
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(44, 62, 80, 0.92);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.25);
+}
+
+.game-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 190px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 14px;
+  background: rgba(44, 62, 80, 0.96);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+}
+
+.game-menu-dropdown button {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.game-menu-dropdown button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.game-menu-dropdown button span:last-child {
+  flex: 1;
+}
+
+.probability-menu-item,
+#probabilityMenuButton {
+  color: #e0aaff !important;
+  display: none;
+}
+
+@media screen and (max-width: 1360px) {
+  .probability-menu-item,
+  #probabilityMenuButton {
+    display: flex;
+  }
+}
+
+.probability-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.probability-panel-heading .material-symbols-outlined {
+  color: #8e44ad;
+  font-size: 28px;
+}
+
+.probability-panel-heading strong,
+.probability-panel-heading small {
+  display: block;
+}
+
+.probability-panel-heading small {
+  font-family: sans-serif;
+  color: #6b7280;
+}
+
+.probability-content {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  font-family: sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.probability-content p {
+  margin: 0;
+}
+
+.probability-panel.is-highlighted {
+  animation: probability-highlight 1.2s ease;
+}
+
+@keyframes probability-highlight {
+  0%,
+  100% {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  40% {
+    box-shadow:
+      0 0 0 5px rgba(142, 68, 173, 0.3),
+      0 12px 28px rgba(0, 0, 0, 0.18);
+  }
+}
+
 /* Gaya Tombol Info */
 .info-btn {
   position: absolute;
@@ -1806,26 +2315,29 @@ button:hover {
 
 /* RESPONSIVE: Saat layar < 900px (Layar Tablet/HP) */
 @media screen and (max-width: 992px) {
-  /* #screen3 {
-    flex-direction: column;
-  } */
+  .game-action-cluster {
+    top: 14px;
+    width: auto;
+  }
 
-  /* Pindahkan BGM ke Kiri */
-  .music-btn-global {
-    right: auto; /* Hilangkan posisi kanan */
-    left: 15px; /* Tempel di kiri */
-    top: 15px;
+  .game-action-cluster-left {
+    left: 14px;
+  }
+
+  .game-menu {
+    top: 14px;
+    right: 14px;
+  }
+
+  .game-action-btn,
+  .ui-round-btn,
+  .game-menu-toggle {
     width: 40px;
     height: 40px;
   }
 
-  /* Info tetap di Kanan (sesuai class .info-btn Anda) */
-  .info-btn {
-    right: 15px !important;
-    top: 15px !important;
-    width: 40px !important;
-    height: 40px !important;
-    position: fixed !important; /* Buat fixed agar tidak tertutup board saat scroll */
+  .probability-content {
+    grid-template-columns: 1fr;
   }
 
   /* Probability Storm Tetap di Tengah */
@@ -1849,5 +2361,72 @@ button:hover {
 
   .storm-bar-bg {
     display: none; /* Sembunyikan progress bar di mobile agar ringkas */
+  }
+
+  .guide-header {
+    padding: 20px;
+  }
+
+  .guide-header h1 {
+    font-size: 28px;
+  }
+
+  .guide-content {
+    max-height: none;
+    padding: 16px 20px;
+  }
+
+  .guide-step {
+    grid-template-columns: 40px 1fr;
+    gap: 12px;
+  }
+
+  .guide-number {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .guide-step h2 {
+    font-size: 19px;
+  }
+
+  .guide-step p {
+    font-size: 16px;
+  }
+
+  .guide-footer {
+    padding: 18px 20px 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-deck {
+    grid-template-columns: 1fr;
+  }
+
+  .card-choice {
+    min-height: auto;
+  }
+
+  .guide-modal-body {
+    border-width: 2px;
+    border-radius: 18px;
+  }
+
+  .guide-header {
+    padding: 18px;
+  }
+
+  .guide-content {
+    padding: 10px 18px;
+  }
+
+  .guide-step {
+    padding: 14px 0;
+  }
+
+  .guide-step p {
+    line-height: 1.45;
   }
 }

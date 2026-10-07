@@ -12,9 +12,28 @@ const TRANSITIONS = Object.freeze({
     GameState.QUESTION,
     GameState.PROBABILITY_STORM,
   ],
-  [GameState.ROLLING_DICE]: [GameState.MOVING_PLAYER, GameState.PLAYING],
+  [GameState.ROLLING_DICE]: [
+    GameState.CARD_DRAW,
+    GameState.MOVING_PLAYER,
+    GameState.PLAYING,
+  ],
+  [GameState.CARD_DRAW]: [GameState.CARD_RESULT],
+  [GameState.CARD_RESULT]: [
+    GameState.COIN_DRAW,
+    GameState.MOVING_PLAYER,
+    GameState.PLAYING,
+    GameState.TURN_TRANSITION,
+  ],
+  [GameState.COIN_DRAW]: [GameState.COIN_RESULT],
+  [GameState.COIN_RESULT]: [
+    GameState.COIN_DRAW,
+    GameState.MOVING_PLAYER,
+    GameState.TURN_TRANSITION,
+    GameState.PLAYING,
+  ],
   [GameState.MOVING_PLAYER]: [
     GameState.MOVING_PLAYER,
+    GameState.CARD_DRAW,
     GameState.QUESTION,
     GameState.MYSTERY,
     GameState.TURN_TRANSITION,
@@ -58,7 +77,16 @@ export class Game {
         {
           enter: (gameContext, previousState) => {
             gameContext.gameStatus = state;
-            stateHandlers[state]?.enter?.(gameContext, previousState);
+            stateHandlers[state]?.enter?.(
+              {
+                ...gameContext,
+                event:
+                  gameContext.event === null
+                    ? null
+                    : structuredClone(gameContext.event),
+              },
+              previousState,
+            );
           },
           exit: (gameContext, nextState) => {
             stateHandlers[state]?.exit?.(gameContext, nextState);
@@ -80,7 +108,7 @@ export class Game {
   }
 
   transition(nextState, event = null) {
-    this.context.event = event;
+    this.context.event = event === null ? null : structuredClone(event);
     return this.stateMachine.transition(nextState);
   }
 }

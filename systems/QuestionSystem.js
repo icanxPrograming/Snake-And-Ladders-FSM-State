@@ -85,7 +85,17 @@ export class QuestionSystem {
       message = correct ? "Jawaban benar!" : "Jawaban kurang tepat!";
     }
 
-    return { correct, message };
+    const explanation = !question
+      ? "Soal tidak valid. Periksa kembali pertanyaan yang diminta."
+      : question.explanation
+        ? correct
+          ? question.explanation
+          : `Jawaban salah. ${question.explanation}`
+        : correct
+          ? "Jawaban sesuai dengan aturan yang diberikan."
+          : "Jawaban tidak sesuai. Periksa kembali aturan dan coba jelaskan pemikiran Anda.";
+
+    return { correct, message, explanation };
   }
 
   checkEssayAnswer(userAnswer, correctAnswer, type) {

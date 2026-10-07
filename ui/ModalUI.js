@@ -7,11 +7,13 @@ export class ModalUI {
     document.getElementById(modalId)?.classList.add("hide");
   }
 
-  showAnswerResult(isCorrect, message) {
+  showAnswerResult(isCorrect, message, explanation = "") {
     const resultModal = document.getElementById("resultModal");
     const resultIcon = document.getElementById("resultIcon");
     const resultTitle = document.getElementById("resultTitle");
     const resultMessage = document.getElementById("resultMessage");
+    const explanationElement = document.getElementById("explanation");
+    const explanationText = document.getElementById("explanationText");
 
     if (!resultModal || !resultIcon || !resultTitle || !resultMessage) return;
 
@@ -28,6 +30,10 @@ export class ModalUI {
     }
 
     resultMessage.textContent = message;
+    if (explanationElement && explanationText) {
+      explanationText.textContent = explanation;
+      explanationElement.style.display = explanation ? "block" : "none";
+    }
     resultModal.classList.remove("hide");
   }
 
