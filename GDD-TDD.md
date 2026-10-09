@@ -1,463 +1,194 @@
 # GDD-TDD: Snakes & Ladders Mathematics Edition
 
-## 1. Dokumentasi ini adalah sumber kebenaran repository
+Dokumen ini memisahkan **Game Design Document (GDD)** dari **Technical Design Document (TDD)**. GDD menjelaskan pengalaman dan aturan yang dirancang; TDD menjelaskan cara source mengimplementasikannya. Status fitur berarti keberadaan implementasi, bukan jaminan bahwa seluruh interaksi sudah lolos uji browser.
 
-Dokumen ini dibuat berdasarkan analisis langsung terhadap isi repository yang ada saat ini, yaitu:
+Dokumen terkait: [README.md](README.md) untuk pengantar, [ARCHITECTURE.md](ARCHITECTURE.md) untuk tanggung jawab modul, [flow-and-requirement.md](flow-and-requirement.md) untuk diagram alur/FSM, dan [test.md](test.md) untuk bukti serta cakupan pengujian.
 
-- README.md
-- ARCHITECTURE.md
-- core/
-- states/
-- systems/
-- ui/
-- tests/
-- question/
-- script.js
-- index.html
+# Bagian I — Game Design Document (GDD)
 
-Status yang digunakan dalam dokumen ini mengikuti pola berikut:
+## 1. Ringkasan permainan
 
-- IMPLEMENTED: fitur atau pola terbukti ada di kode dan/atau test.
-- PARTIALLY IMPLEMENTED: ada fondasi atau alur kerja, tetapi belum sepenuhnya lengkap atau tidak terbukti di tests.
-- PLANNED: disebut sebagai rencana atau target tapi belum diimplementasikan di repo saat ini.
-- LEGACY: masih ada di repo tetapi tidak lagi merupakan jalur utama.
-- DEPRECATED: kode/fitur tetap ada namun tidak digunakan lagi secara aktif.
-- UNKNOWN: tidak cukup bukti dari repo untuk menilai statusnya.
+| Elemen | Deskripsi |
+|---|---|
+| Judul | Snakes & Ladders Mathematics Edition / Petualangan Probabilitas |
+| Genre | Board game edukasi, turn-based |
+| Platform | Web browser, static frontend |
+| Jumlah pemain | Local multiplayer 2–4 pemain pada satu perangkat |
+| Materi utama | Matematika: peluang, ruang sampel, frekuensi harapan dan konsep terkait yang ada di bank soal |
+| Tujuan sesi | Menjadi pemain pertama yang mencapai posisi 100; melihat leaderboard dan sertifikat hasil sesi |
+| Target pengguna | Pemain/pelajar yang mempelajari peluang. Kelompok usia/jenjang spesifik belum dinyatakan di source. |
 
-## 2. Ringkasan produk
+## 2. Pilar desain
 
-Proyek ini adalah game berbasis browser yang menggabungkan mekanisme klasik ular tangga dengan konten matematika probabilitas. Permainan dijalankan di frontend vanilla JavaScript, tanpa framework, dan didesain untuk pengalaman lokal multiplayer. Struktur permainan didukung oleh state machine yang mengatur lifecycle game dan transisi antar tampilan.
+1. **Belajar melalui keputusan:** pemain menjawab soal saat mendarat pada tile khusus.
+2. **Kompetisi lokal yang mudah dimulai:** pemain berbagi satu board dan bergiliran.
+3. **Variasi kejadian peluang:** dadu, pilihan kartu, simulasi koin, reward misteri, dan Probability Storm memberi konteks probabilitas yang berbeda.
+4. **Umpan balik langsung:** jawaban dapat menampilkan penjelasan dan memengaruhi gerak/statistik.
 
-### Status umum
+Pilar ini menggambarkan tujuan produk; efektivitas pedagogis seluruh soal belum dievaluasi secara formal.
 
-| Area                                      | Status                 | Bukti utama                                                 |
-| ----------------------------------------- | ---------------------- | ----------------------------------------------------------- |
-| Game loop & FSM                           | IMPLEMENTED            | core/Game.js, core/GameState.js, tests/game-states.test.mjs |
-| Board movement & finish logic             | IMPLEMENTED            | systems/MovementSystem.js, tests/game-systems.test.mjs      |
-| Question system                           | IMPLEMENTED            | systems/QuestionSystem.js, question/\*.json                 |
-| Score/statistics                          | IMPLEMENTED            | systems/ScoreSystem.js, tests/game-systems.test.mjs         |
-| Probability Storm                         | IMPLEMENTED            | states/ProbabilityStormState.js, script.js                  |
-| Winner certificate export                 | IMPLEMENTED            | ui/CertificateUI.js, index.html                             |
-| Audio / BGM / countdown                   | IMPLEMENTED            | script.js                                                   |
-| Persistence (localStorage/sessionStorage) | NOT IMPLEMENTED        | tidak ada penggunaan storage di repo                        |
-| AI / duel mode                            | PLANNED / NOT IN SCOPE | ARCHITECTURE.md menyebutkan tidak ada di repo               |
-| Subject/class selection                   | PLANNED / NOT IN SCOPE | ARCHITECTURE.md menyebutkan tidak ada                       |
+## 3. Sesi dan pengalaman pemain
 
-## 3. Tujuan desain game
+1. Pemain memilih jumlah pemain (2–4), nama/avatar, dan kesulitan.
+2. Board dan special tile disiapkan; pemain pertama mendapat giliran.
+3. Pemain melempar dadu, menyelesaikan kartu, gerakan atau subgame, lalu tile/soal terkait.
+4. Giliran berpindah; Probability Storm dapat menyela saat kondisi permainan dianggap aman.
+5. Pemain yang mencapai finish memicu layar leaderboard dan sertifikat.
 
-Berdasarkan repo dan README, tujuan game adalah:
+Game memiliki menu/panduan, profil pemain, board, modal question/result, card/coin, Storm indicator, leaderboard, dan certificate view. Kontrol dan alur layar aktual dijabarkan di [guide.md](guide.md).
 
-1. Mengubah mekanisme ular tangga menjadi aktivitas belajar probabilitas.
-2. Menerapkan tantangan soal di setiap tile tertentu, bukan sekadar random movement.
-3. Menggunakan turn-based local multiplayer antar 2 sampai 4 pemain.
-4. Memberikan sensasi kompetisi melalui Probability Storm dan sistem statistik.
-5. Menghasilkan pemenang dan sertifikat digital berbasis hasil akhir.
+## 4. Aturan permainan
 
-## 4. Gameplay dan aturan utama
+### 4.1 Dadu, gerak, dan finish
 
-### 4.1 Board dan finish condition
+- Nilai dadu adalah 1–6.
+- Board memiliki posisi 1–100; pemain mulai dari posisi 0 sesuai data player system.
+- Gerak yang melewati 100 dipantulkan kembali dari posisi 100 sejauh kelebihannya; gerak di bawah 0 dibatasi ke 0.
+- Kondisi menang memeriksa posisi tepat 100. Aturan bounce dan finish memiliki system test terpilih.
 
-- Board dimodelkan sebagai papan 100 posisi.
-- Finish condition diatur oleh `WinConditionSystem.hasWon(player, finishPosition = 100)`.
-- Pergeseran pemain mengikuti mekanisme overshoot/bounce:
-  - jika posisi target melewati 100, posisi kembali dari sisi lawan pada jarak kelebihan.
-  - jika posisi hasil < 0, dibatasi menjadi 0.
-- Aturan ini terimplementasi di `systems/MovementSystem.js` dan diverifikasi oleh test `movement preserves finish bounce and tile precedence`.
+### 4.2 Kesulitan dan special tiles
 
-### 4.2 Special tile
+Kesulitan global yang dapat dipilih adalah `easy`, `standard`, dan `hard`. Setiap sesi membangkitkan tile `easy`, `standard`, `hard`, dan `mystery` dengan distribusi berbeda menurut mode. Mystery adalah kategori tile/soal, bukan pilihan kesulitan di menu. Tile biasa tidak memicu question.
 
-Tile khusus dibuat secara dinamis berdasarkan tingkat kesulitan global permainan (`easy`, `standard`, `hard`).
+### 4.3 Soal tile dan Guardian
 
-- `easy`
-- `standard`
-- `hard`
-- `mystery`
+Soal dipilih dari pool yang sesuai tile. Untuk tile biasa, jawaban benar memberi bonus satu langkah; jawaban salah atau timeout tidak memberi bonus dan giliran berakhir. Mystery benar memberi reward acak 2–5 langkah; salah memundurkan satu langkah. Bila posisi khusus beririsan dengan start ular/tangga, Guardian meminta jawaban: benar mengizinkan naik/bertahan, salah menggagalkan naik atau menjatuhkan pemain melalui ular.
 
-Masing-masing level memiliki pool pertanyaan sendiri dalam folder `question/` dan rute `questionPool` di `script.js`.
+### 4.4 Kartu dan koin
 
-### 4.3 Question flow
+Sesudah animasi dadu, pemain memilih satu dari tiga kartu tersembunyi yang mewakili kategori fortune, penalty, dan game (setiap deck memiliki tiga kategori unik):
 
-Question diambil dari JSON lalu dipilih berdasarkan jenis soal dan tingkat kesulitan tertentu. Ada fallback ketika file JSON gagal di-load atau belum selesai dimuat.
+| Kategori | Dampak yang dijalankan |
+|---|---|
+| Fortune | Menggerakkan pemain dengan nilai dadu saat ini, kemudian menyelesaikan tile. `CardSystem` definisinya menyimpan `effect.value: 3`, tetapi resolver aktual menggunakan nilai dadu; definisi ini perlu diselaraskan. |
+| Penalty | Tidak bergerak dan giliran berpindah. |
+| Game | Memulai goal subgame koin. Goal selesai ketika sisi target tercapai sejumlah 4, 6, 8, 10, atau 12 kali; gerakan sesudahnya memakai nilai dadu saat ini. |
 
-Kelas yang bertanggung jawab:
-
-- `QuestionSystem.js`: pemilihan pertanyaan dan evaluasi jawaban
-- `script.js`: pengambil data game dan routing jawaban
-- `QuestionUI.js`: tampilan soal dan interaksi pengguna
-
-Question types yang ditemukan di repo:
-
-- `multiple_choice`
-- `true_false`
-- `essay`
-- `what_if`
-
-Evaluasi jawaban dibagi menjadi:
-
-- pilihan ganda / benar-salah: bandingkan langsung dengan `answer`
-- essay / math / text: normalisasi string supaya bentuk seperti `1/2`, `5/36`, dan notasi matematika dapat dibandingkan lebih toleran
-
-### 4.4 Nilai skor dan statistik
-
-`PlayerSystem` menciptakan struktur pemain dengan atribut:
-
-- `name`
-- `image`
-- `score`
-- `stats`
-
-`stats` mencakup:
-
-- `correct`
-- `wrong`
-- `ladders`
-- `snakes`
-- `currentStreak`
-- `maxStreak`
-- `totalMoves`
-- `stormWins`
-- `mysterySolved`
-
-Status pemain diperbarui di `ScoreSystem.js` untuk:
-
-- `recordMove`
-- `recordAnswer`
-- `recordTimeout`
-- `recordLadder`
-- `recordSnake`
-- `recordStormWin`
-
-Timeout dianggap salah dan memutus streak saat ini. Ini terbukti di test `timed-out questions count as wrong and break the current streak`.
+Goal meminta sisi angka `A` atau sisi gambar `G`. Setiap lemparan menambah progress hanya jika hasil cocok dengan target side.
 
 ### 4.5 Probability Storm
 
-Probability Storm adalah event game otomatis yang memerlukan turn-based queue antar pemain. Berdasarkan `states/ProbabilityStormState.js`, alurnya:
+Countdown runtime adalah 180 detik. Saat waktunya habis, event menunggu pemain tidak sedang rolling atau memproses jawaban, lalu pemain dalam queue menjawab question Storm dengan batas 30 detik. Jawaban benar memberi statistik storm win dan gerak 3 langkah. Queue, timer, notifikasi, dan audio diorkestrasi controller. Perilaku source belum membuktikan timing/audio browser berjalan andal pada semua perangkat.
 
-- jika event `resume` aktif, tampilkan pemain berikutnya tanpa memulai ulang event
-- jika tidak, jalankan `beginProbabilityStorm()`
+### 4.6 Statistik, gelar, dan akhir sesi
 
-Fitur ini terdokumentasi di README dan terhubung ke `script.js` untuk:
+Stat pemain meliputi benar/salah, current/max streak, jumlah gerak, ladder/snake, Storm win, dan mystery solved. Gelar dihitung dari statistik saat certificate dibuat. Leaderboard lokal merangking pemain dalam sesi. Tidak ada leaderboard server atau riwayat sesi persisten.
 
-- countdown / audio sirine
-- transisi musik
-- antrean pemain dalam Storm
-- putaran menjawab pertanyaan khusus
-- reward maju 3 langkah bila benar
+## 5. Desain pembelajaran dan konten
 
-Status: IMPLEMENTED dalam alur utama permainan, dengan validasi test FSM terkait resume storm.
+Bank soal memiliki empat tingkat/pool: easy, standard, hard, mystery. Jenis soal yang didukung source/UI: `multiple_choice`, `true_false`, `essay`, `what_if`. Soal dapat berisi explanation dan time limit. Bentuk matematika/himpunan memakai MathLive; jawaban teks memakai pemeriksaan string yang saat ini dapat menerima kecocokan parsial.
 
-### 4.6 Ladder dan snake logic
+Pedoman konten yang disarankan:
 
-`script.js` mendefinisikan data set ladder dan snake sebagai array dua dimensi. Sebagian definisi tetap pada struktur array dari start-end posisi. Saat pemain berhenti pada cell ladder atau snake, gameplay memakai pending state dan memutuskan apakah pemain dibolehkan naik atau harus turun sesuai jawaban soal.
+- Pastikan `answer` sesuai dengan indeks opsi atau tipe jawaban yang dibaca UI.
+- Tulis penjelasan singkat yang memperlihatkan alasan matematis, bukan hanya menyebut benar/salah.
+- Minta review pengajar untuk kebenaran, kesesuaian jenjang, bahasa, dan tingkat kesulitan.
+- Uji setiap format jawaban melalui UI; validitas JSON saja tidak menjamin jawaban dapat dinilai sebagaimana dimaksud.
 
-### 4.7 Achievement title
+## 6. Ruang lingkup dan status desain
 
-Gelar dihasilkan di `script.js` melalui fungsi `getAchievementTitle(player)`. Kriteria mencakup:
+| Fitur | Status |
+|---|---|
+| Local multiplayer 2–4 pemain, board, dadu, ular/tangga, tile soal | IMPLEMENTED pada source |
+| Mystery, Guardian, statistik, gelar | IMPLEMENTED pada source; jalur browser lengkap belum tervalidasi |
+| Card/coin lifecycle | IMPLEMENTED pada source dan sebagian tercakup test system/FSM |
+| Probability Storm dan pergantian audio | IMPLEMENTED pada source; validasi timing/audio parsial |
+| Sertifikat PNG | IMPLEMENTED pada source; download browser belum terverifikasi penuh |
+| Tutorial seen flag | IMPLEMENTED menggunakan localStorage |
+| Progres tersimpan/leaderboard permanen, multiplayer online, backend | PLANNED / NOT IMPLEMENTED |
+| AI/NPC, duel, subject/class selection | PLANNED / NOT IN SCOPE |
 
-- akurasi sempurna
-- streak tinggi
-- banyak ladder / snake
-- misteri selesai
-- jumlah storm win
-- default fallback `Juara Ular Tangga`
+# Bagian II — Technical Design Document (TDD)
 
-Status: IMPLEMENTED.
+## 7. Stack dan runtime
 
-### 4.8 Sertifikat akhir
+- HTML/CSS dan vanilla JavaScript dengan ES modules.
+- `index.html` memuat `script.js`; project tidak menunjukkan bundler/build pipeline atau backend.
+- `fetch()` mengambil question banks dan `subgame/goals.json`; jalankan melalui HTTP lokal (mis. VS Code Live Server), bukan mengandalkan pembukaan `file://`.
+- MathLive 0.98.5 dan html2canvas 1.4.1 dirujuk dari CDN; Font Awesome/Google Fonts juga eksternal. Aset audio/image disimpan lokal.
+- Node.js diperlukan untuk menjalankan test Node; tidak diperlukan untuk runtime browser statis.
 
-Sertifikat akhir ditampilkan pada state `CERTIFICATE` dan di-render oleh `CertificateUI.js`.
+## 8. Struktur teknis dan tanggung jawab
 
-Komponen hasil certificate meliputi:
+| Modul | Tanggung jawab |
+|---|---|
+| `core/Game.js` | Handler registry, transition map, event clone dan `transition()` facade. |
+| `core/StateMachine.js` | Validasi edge dan lifecycle `enter/exit`; menyimpan current/previous state. |
+| `core/GameState.js`, `GameContext.js` | State constants serta context `data/actions/event/gameStatus`. |
+| `states/` | Lifecycle delegates untuk menu/setup/play, dice/movement, question/result, Storm, card/coin, turn, game-over/certificate. |
+| `systems/` | Player, turn, dice, movement, question, score, win, card, coin logic. |
+| `ui/` | DOM modules untuk menu, board, dice, game, question, modal, card, coin, certificate. |
+| `script.js` | Composition root/controller; menghubungkan semua modul, state data global, callbacks, timer, animasi, audio, dan sebagian aturan flow. |
+| `question/*.json`, `subgame/goals.json` | Konten soal dan goal koin. |
 
-- nama pemenang
-- gelar hasil dari `getAchievementTitle`
-- statistik kemenangan:
-  - jumlah benar
-  - max streak
-  - ladders
-  - snakes
-- tabel leaderboard untuk semua pemain
+Tanggung jawab file lebih terperinci dijelaskan pada [ARCHITECTURE.md](ARCHITECTURE.md). Diagram class/module dan FSM ada di [flow-and-requirement.md](flow-and-requirement.md).
 
-Ekspor PNG memakai `html2canvas` dan melakukan download dengan nama file `Sertifikat_MathGame_${playerName}.png`.
+## 9. Alur teknis dan state
 
-Status: IMPLEMENTED.
+`script.js` membuat system/UI → membangun `GameContext` dan action callbacks → membuat `Game` dengan handler per state → memulai `MENU`. UI callback/timer meminta transisi lewat controller. FSM memvalidasi edge lalu menjalankan handler state; handler memanggil actions pada context. System menghitung aturan, UI menampilkan hasil, controller menentukan transisi lanjutan.
 
-## 5. Arsitektur teknis
+State names: `BOOT`, `MENU`, `PLAYER_SETUP`, `GAME_SETUP`, `PLAYING`, `ROLLING_DICE`, `CARD_DRAW`, `CARD_RESULT`, `COIN_DRAW`, `COIN_RESULT`, `MOVING_PLAYER`, `QUESTION`, `MYSTERY`, `QUESTION_RESULT`, `PROBABILITY_STORM`, `TURN_TRANSITION`, `GAME_OVER`, `CERTIFICATE`. Daftar transisi kanonik ada di `core/Game.js` dan digambarkan pada flow-requirement. Transisi berulang ke state yang sama no-op; invalid transition melempar error.
 
-### 5.1 Struktur basis
+Tidak ada EventBus. Pesan lintas state disampaikan melalui `Game.transition(state, event)`/`GameContext.event`, dan state action callbacks. Sebagian callback asynchronous/timer tetap di luar kendali lifecycle FSM.
 
-```text
-core/
-  Game.js                 state registry dan validasi transisi
-  GameContext.js          data runtime dan actions registry
-  GameState.js            konstanta nama state
-  StateMachine.js         lifecycle transisi FSM
+## 10. Data contract
 
-states/
-  MenuState.js
-  PlayerSelectionState.js
-  GameSetupState.js
-  PlayingState.js
-  RollingDiceState.js
-  MovingPlayerState.js
-  QuestionState.js
-  MysteryState.js
-  QuestionResultState.js
-  ProbabilityStormState.js
-  TurnTransitionState.js
-  GameOverState.js
-  CertificateState.js
+### Question bank
 
-systems/
-  PlayerSystem.js
-  TurnSystem.js
-  DiceSystem.js
-  MovementSystem.js
-  QuestionSystem.js
-  ScoreSystem.js
-  WinConditionSystem.js
+Setiap file level berupa object dengan `difficulty` dan array berdasarkan tipe. Contoh record:
 
-ui/
-  MenuUI.js
-  BoardUI.js
-  DiceUI.js
-  GameUI.js
-  QuestionUI.js
-  ModalUI.js
-  CertificateUI.js
-
-question/
-  easyQuestion.json
-  standarQuestion.json
-  hardQuestion.json
-  mysteryQuestion.json
-
-tests/
-  game-systems.test.mjs
-  game-states.test.mjs
+```json
+{
+  "id": "E-MC-01",
+  "question": "Teks soal",
+  "options": ["A", "B", "C"],
+  "answer": 1,
+  "explanation": "Alasan jawaban",
+  "time_limit": 30
+}
 ```
 
-### 5.2 Prinsip arsitektur
+Field `options` digunakan multiple choice dan `answer` adalah indeks 0-based; true/false menggunakan boolean. Essay memakai `answer` string dan `input_type` (`math`, `set`, atau `text`); `what_if` juga memakai input type sesuai data/UI. `explanation` tidak wajib ada pada semua record, tetapi disarankan. Loader menambahkan/melengkapi array tipe kosong dan memakai fallback bila fetch file gagal. Source tidak menunjukkan schema validation formal.
 
-Repositori mengikuti pola berikut:
+### Coin goal
 
-- `core/`: FSM dan konteks runtime
-- `states/`: lifecycle handler per state
-- `systems/`: rules deterministik dan perhitungan permainan
-- `ui/`: jendela DOM, rendering, dan interaksi tampilan
-- `script.js`: orchestration utama dan wiring runtime
+Goal JSON adalah array object dengan `id`, `goal`, `target` (angka positif), `targetSide` (`A`/`G`), dan `explanation`. Source menyalin array JSON ke CoinSystem; validasi schema formal tidak terlihat. Goal default berada di `systems/CoinSystem.js` sebagai fallback.
 
-Ini sesuai dengan `ARCHITECTURE.md` dan konsisten dengan cara `GameContext.actions` dipanggil oleh state handlers.
+### Player/session/storage
 
-### 5.3 Data flow utama
+Player memiliki `name`, `image`, `score`, `stats`. Posisi, stats, current turn, question, dan event berada di memori. `localStorage` hanya menyimpan flag tutorial `snares-and-ladders-tutorial-seen`; tidak ada session/progress persistence.
 
-```text
-user action / timer / state entry
-  -> Game.transition(nextState, event)
-  -> StateMachine validates transition
-  -> state enter hook runs
-  -> GameContext.actions.* executes
-  -> UI + system updates
-  -> next state or result state
-```
+## 11. Randomness dan aturan deterministik
 
-## 6. State machine
+DiceSystem, CardSystem, CoinSystem menerima random function (default `Math.random`) sehingga dapat dikontrol dalam test. Question selection dan special tile generation di controller juga menggunakan `Math.random`. Special tiles diacak memakai random comparator `Array.sort`, sehingga distribusinya tidak seragam dan tidak mudah diuji deterministik. Bila mengubah aturan, pertahankan reproducibility dengan dependency random yang diinjeksi.
 
-Ini adalah state machine yang saat ini berlaku berdasarkan kode di `core/Game.js` dan `core/GameState.js`.
+## 12. Integrasi UI, aset, dan error behavior
 
-```mermaid
-stateDiagram-v2
-  [*] --> BOOT
-  BOOT --> MENU
-  MENU --> PLAYER_SETUP
-  PLAYER_SETUP --> MENU
-  PLAYER_SETUP --> GAME_SETUP
-  GAME_SETUP --> PLAYING
-  PLAYING --> ROLLING_DICE
-  PLAYING --> QUESTION
-  PLAYING --> PROBABILITY_STORM
-  ROLLING_DICE --> MOVING_PLAYER
-  MOVING_PLAYER --> MOVING_PLAYER
-  MOVING_PLAYER --> QUESTION
-  MOVING_PLAYER --> MYSTERY
-  MOVING_PLAYER --> TURN_TRANSITION
-  MOVING_PLAYER --> GAME_OVER
-  QUESTION --> QUESTION_RESULT
-  QUESTION --> MOVING_PLAYER
-  QUESTION --> TURN_TRANSITION
-  MYSTERY --> QUESTION_RESULT
-  MYSTERY --> MOVING_PLAYER
-  MYSTERY --> TURN_TRANSITION
-  QUESTION_RESULT --> MOVING_PLAYER
-  QUESTION_RESULT --> TURN_TRANSITION
-  QUESTION_RESULT --> PROBABILITY_STORM
-  PROBABILITY_STORM --> QUESTION_RESULT
-  PROBABILITY_STORM --> MOVING_PLAYER
-  PROBABILITY_STORM --> PLAYING
-  TURN_TRANSITION --> PLAYING
-  GAME_OVER --> CERTIFICATE
-```
+- UI modules mencari elemen dengan DOM ID/class; inline HTML handler dipasang pada `window` oleh controller. Perubahan ID/handler perlu perubahan sinkron pada semua pemanggil.
+- Library eksternal/CDN memerlukan akses jaringan; MathLive, audio autoplay policy, dan html2canvas perlu browser interaction validation.
+- Question fetch punya fallback per-file; coin goal fetch ditangani di bootstrap dengan goal bawaan tetap tersedia.
+- `downloadCertificate()` bergantung pada global `html2canvas` dan area DOM certificate yang tersedia.
+- Audio play dapat ditolak browser sebelum interaksi pengguna; controller memakai beberapa `.catch()`, tetapi tidak ada bukti matriks browser.
 
-### 6.1 State responsibilities
+## 13. Testing, batas, dan technical debt
 
-- `MENU`: entry screen / selection awal
-- `PLAYER_SETUP`: pengaturan pemain dan jumlah pemain
-- `GAME_SETUP`: reset timer, reset stats, render board, memulai game session
-- `PLAYING`: loop aktif permainan
-- `ROLLING_DICE`: aksi lempar dadu
-- `MOVING_PLAYER`: pergerakan normal atau event ladder/snake
-- `QUESTION` / `MYSTERY`: menampilkan soal dan memulai timer
-- `QUESTION_RESULT`: menampilkan hasil jawaban
-- `PROBABILITY_STORM`: menyiapkan dan melanjutkan event badai probabilitas
-- `TURN_TRANSITION`: lanjut ke giliran berikutnya
-- `GAME_OVER`: menangani pemenang
-- `CERTIFICATE`: menampilkan sertifikat dan leaderboard
+Automated test berada di `tests/` dan mencakup system rules terpilih serta lifecycle FSM/card/coin. Hasil historis dan batas pengujian dilacak pada [test.md](test.md); jangan menganggap hasil historis sebagai run terbaru. Belum terbukti secara formal: end-to-end gameplay, seluruh modal, audio, CDN, MathLive, cross-browser/responsive, accessibility, serta file download.
 
-## 7. Question library dan data source
+Risiko teknis yang perlu diprioritaskan:
 
-Folder `question/` berisi file JSON yang menjadi bank soal. Di `script.js`, file di-load via `fetch()` dan disimpan ke `questionPool`.
+1. Pemusatan orkestrasi dan asynchronous timers di `script.js` memungkinkan callback lama/duplikat mengubah state.
+2. Evaluasi input text menerima substring; dapat menghasilkan false positive.
+3. Definisi fortune menyimpan nilai 3 sementara resolver menggunakan nilai dadu.
+4. Tile shuffle memakai comparator acak, bukan Fisher–Yates.
+5. Penutupan soal kini merupakan submit kosong/salah agar state/turn berjalan melalui jalur normal; regression/browser test khusus belum tercatat.
 
-### Data yang teridentifikasi
+## 14. Panduan perubahan dan prioritas
 
-- `easyQuestion.json`
-- `standarQuestion.json`
-- `hardQuestion.json`
-- `mysteryQuestion.json`
+1. Sebelum menambah fitur, cek status fitur/aturan pada GDD dan transisi di `core/Game.js`.
+2. Letakkan kalkulasi murni di `systems/`, DOM di `ui/`, lifecycle tipis di `states/`, wiring di `script.js`.
+3. Untuk perubahan schema soal/goal, sinkronkan loader, UI, fallback, dan test.
+4. Setiap transisi asynchronous harus punya state yang sah, guard duplikasi, dan strategi membatalkan timer.
+5. Tambahkan test fokus, jalankan `node --test tests/*.test.mjs`, lalu catat output nyata di `test.md`.
+6. Jalankan acceptance browser untuk alur yang tersentuh. Release belum dapat dinyatakan siap tanpa bukti tersebut.
 
-Setiap pool memiliki struktur yang biasanya mencakup jenis:
-
-- `multiple_choice`
-- `true_false`
-- `essay`
-- `what_if`
-
-Jika file gagal di-load, `script.js` menggunakan `getFallbackQuestions(difficulty)` untuk memastikan permainan tetap berjalan.
-
-Status: IMPLEMENTED.
-
-## 8. Test design / TDD evidence
-
-Repository memiliki test suite Node di folder `tests/`.
-
-### Tes yang ada saat ini
-
-1. `game-states.test.mjs`
-   - lifecycle menu/player setup
-   - setup game can transition to playing
-   - payloads are delivered through state transitions
-   - storm resume behavior
-
-2. `game-systems.test.mjs`
-   - player reset behavior
-   - dice and turn rotation bounds
-   - movement bounce logic
-   - question evaluation
-   - score, streak, storm win, and finish condition
-   - timeout rules
-
-### Status validasi saat ini
-
-Command yang dijalankan:
-
-```bash
-node --test tests/*.test.mjs
-```
-
-Hasil yang didapat:
-
-- 11 test pass
-- 0 fail
-- duration sekitar 72.9 ms
-
-Ini menunjukkan project sedang dalam kondisi green untuk test yang saat ini tersedia.
-
-## 9. Keterbatasan dan status yang tidak terimplementasi
-
-### 9.1 Persistence
-
-Repository tidak memiliki penggunaan `localStorage` atau `sessionStorage`.
-
-Status: NOT IMPLEMENTED.
-
-### 9.2 AI / duel
-
-`ARCHITECTURE.md` secara eksplisit menyatakan:
-
-- Duel tidak diimplementasikan
-- AI tidak diimplementasikan
-- class selection tidak diimplementasikan
-- subject selection tidak diimplementasikan
-
-Status: PLANNED / NOT IN SCOPE.
-
-### 9.3 Build process
-
-Repo ini bersifat static frontend. Tidak ada build pipeline atau bundler yang terdeteksi dalam struktur yang dibaca.
-
-Status: IMPLEMENTED dalam bentuk static site, tidak ada build tooling yang dibutuhkan.
-
-### 9.4 Persistence leaderboard / ranking server-side
-
-Belum ada layanan backend, database, atau storage untuk skor permanen.
-
-Status: UNKNOWN untuk kebutuhan produksi, namun tidak ada indikasi implementasi saat ini.
-
-## 10. Risiko dan catatan implementasi
-
-- Pembebanan pertanyaan bergantung pada `fetch` dari `question/*.json`; fallback disediakan, tetapi performa dan lintas browser tetap perlu diwaspadai.
-- Audio memerlukan interaksi pengguna agar dapat berbunyi di browser modern; `script.js` menanggulangi ini melalui `.catch()` dan inisiasi setelah user interaction.
-- `ProbabilityStormState` memiliki path `resume` yang dirancang agar event tidak direset ulang; ini penting untuk mencegah loop restart event.
-- `CertificateUI` menargetkan elemen DOM dengan `html2canvas`, sehingga export sertifikat sangat bergantung pada adanya DOM certificate yang valid saat runtime.
-- Tidak ada service layer yang memisahkan state dari DOM secara ketat; sebagian orchestration masih berada di `script.js`.
-
-## 11. Panduan pengembangan lanjut
-
-### 11.1 Menambah state baru
-
-1. Tambahkan konstanta di `core/GameState.js`
-2. Tambahkan valid transition di `core/Game.js`
-3. Buat state class di `states/`
-4. Register state handler di `script.js`
-5. Uji transisi melalui `tests/game-states.test.mjs`
-
-### 11.2 Menambah system baru
-
-- Letakkan logika perhitungan di `systems/`
-- Hindari menaruh logic game di UI layer
-- Tambahkan test terfokus di `tests/game-systems.test.mjs`
-
-### 11.3 Menambah fitur visual baru
-
-- Letakkan rendering di `ui/`
-- Pastikan aksi state tetap memanggil action melalui `GameContext.actions`
-- Jangan menempatkan DOM logic di `core/` atau `states/` kecuali hanya untuk lifecycle minimal
-
-## 12. Kesimpulan status proyek
-
-Dari analisis repo yang ada, proyek ini secara umum berada dalam status:
-
-- Game core: IMPLEMENTED
-- Rule engine: IMPLEMENTED
-- Question system: IMPLEMENTED
-- Probability Storm: IMPLEMENTED
-- Final certificate: IMPLEMENTED
-- Local multiplayer flow: IMPLEMENTED
-- Persistence and AI modes: NOT IMPLEMENTED / PLANNED
-
-Secara keseluruhan, repo saat ini adalah game edukasi berbasis browser yang sudah berjalan secara fungsional dan memiliki test regresi yang lulus, dengan fokus utama pada mekanik matematika probabilitas dan turn-based local competition.
-
-## 13. Referensi langsung repo
-
-- README.md
-- ARCHITECTURE.md
-- core/Game.js
-- core/GameContext.js
-- core/GameState.js
-- systems/MovementSystem.js
-- systems/QuestionSystem.js
-- systems/ScoreSystem.js
-- states/ProbabilityStormState.js
-- states/CertificateState.js
-- ui/CertificateUI.js
-- tests/game-states.test.mjs
-- tests/game-systems.test.mjs
+Status release/version formal: UNKNOWN; repository tidak menunjukkan tag/release record yang dapat diverifikasi.

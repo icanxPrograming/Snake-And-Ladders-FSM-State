@@ -848,19 +848,21 @@ const closeResultModal = () => {
 
 // ===== Tutup modal soal =====
 const closeQuestionModal = () => {
-  console.log("closeQuestionModal called");
+  const currentState = game?.stateMachine?.currentState;
+  if (
+    !currentQuestion ||
+    isProcessingAnswer ||
+    (currentState !== GameState.QUESTION &&
+      currentState !== GameState.MYSTERY)
+  ) {
+    return;
+  }
 
-  if (questionTimer) clearInterval(questionTimer);
+  // Menutup soal berarti menyerah: jawaban kosong diproses sebagai salah,
+  // sehingga skor, penalti misteri, dan pergantian giliran tetap melalui alur normal.
+  submitAnswer(currentQuestion, "");
   questionUI.hide();
-
-  // Reset state
-  isRolling = false;
-  isProcessingAnswer = false;
-
   restoreBGM();
-
-  // Kembalikan kontrol ke pemain yang sama
-  enableCurrentPlayerDice();
 };
 
 // ===== Board =====

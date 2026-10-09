@@ -1,183 +1,60 @@
-# FLOW AND REQUIREMENT
+# Alur dan Kebutuhan Sistem
 
-## 1. Document Information
+Dokumen ini merangkum interaksi dan alur yang ditemukan dari source. Diagram FSM merujuk langsung ke transisi di `core/Game.js`; arsitektur modul rinci ada di [ARCHITECTURE.md](ARCHITECTURE.md), desain dan aturan di [GDD-TDD.md](GDD-TDD.md), sedangkan bukti pengujian ada di [test.md](test.md).
 
-| Item                 | Information                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| Project Name         | Snakes & Ladders Mathematics Edition                                                        |
-| Document Name        | flow-and-requirement.md                                                                     |
-| Document Type        | Flow & System Requirement                                                                   |
-| Platform             | Web Browser (client-side static site)                                                       |
-| Technology           | HTML5, CSS3, JavaScript (Vanilla ES Modules), JSON question banks, HTML5 audio, html2canvas |
-| Engine/Framework     | Vanilla JavaScript; no framework or game engine detected                                    |
-| Current Version      | Not formally versioned in repository                                                        |
-| Documentation Status | Based on repository source code and tests                                                   |
-| Last Updated         | 2026-10-01                                                                                  |
+## Status kebutuhan
 
-## 2. System Overview
+| Kebutuhan | Status | Bukti / batas |
+|---|---|---|
+| Game browser statis, JavaScript ES modules | IMPLEMENTED | `index.html`, `script.js`; server lokal direkomendasikan untuk `fetch` JSON. |
+| Local multiplayer 2–4 pemain, setup nama/avatar | IMPLEMENTED pada source | UI dan kontrol ada; belum ada bukti acceptance browser lengkap. |
+| Dadu, giliran, gerak board 1–100, ular/tangga | IMPLEMENTED pada source | `systems/` dan controller; system test mencakup sebagian aturan. |
+| Tile soal, mystery, Guardian, scoring | IMPLEMENTED pada source | UI + controller + `QuestionSystem`/`ScoreSystem`; interaksi browser belum terverifikasi penuh. |
+| Card draw dan efek fortune/penalty/game | IMPLEMENTED pada source | FSM, `CardSystem`, `CardUI`, controller; hasil card lifecycle sebagian diuji melalui FSM/system. |
+| Subgame coin A/G dengan goal JSON | IMPLEMENTED pada source | `CoinSystem`, UI/state; test unit/FSM tersedia, belum E2E. |
+| Probability Storm, antrean dan audio | IMPLEMENTED pada source; validasi parsial | Controller dan state resume tersedia; interaksi timer/audio menyeluruh belum diuji. |
+| Leaderboard lokal dan sertifikat PNG | IMPLEMENTED pada source; validasi parsial | `CertificateUI`/`html2canvas`; bukti download lintas browser tidak tersedia. |
+| Flag tutorial tersimpan | IMPLEMENTED | `localStorage`; bukan penyimpanan progres atau leaderboard. |
+| Persistensi sesi, backend, online multiplayer | PLANNED / NOT IMPLEMENTED | Tidak ditemukan implementasinya. |
+| AI/NPC, duel, pilihan kelas/subjek | PLANNED / NOT IN SCOPE | Tidak ditemukan implementasinya. |
+| Browser matrix, aksesibilitas, benchmark | UNKNOWN / NEEDS VERIFICATION | Bukti formal tidak ditemukan. |
 
-### 2.1 Game Type
+## Game State Flowchart
 
-Game berbasis browser yang menggabungkan mekanisme ular tangga klasik dengan konten matematika probabilitas. Fokus utama permainan adalah turn-based local multiplayer dengan soal di tiap tile tertentu, event khusus, dan penghargaan akhir berupa sertifikat.
+Urutan startup aktual: pembuatan instance di `script.js` → `game.start()` → `MENU`; render board dan pemuatan data berjalan dari controller. Setup: `MENU → PLAYER_SETUP → GAME_SETUP → PLAYING`. Saat mulai game, stats pemain direset, board dan profil dirender, BGM/countdown dimulai. `localStorage` hanya menyimpan status tutorial yang pernah ditampilkan.
 
-### 2.2 Core Gameplay
-
-- 2–4 pemain lokal
-- Giliran bergantian
-- Lempar dadu
-- Pindah posisi
-- Deteksi tile
-- Jawab soal jika tile memerlukan
-- Evaluasi hasil jawaban
-- Cek kondisi menang
-- Lanjut ke giliran berikutnya
-
-### 2.3 Player
-
-- Player didefinisikan oleh `PlayerSystem`
-- Setiap player memiliki `name`, `image`, `score`, dan `stats`
-- Game default menyusun 4 profil pemain local: `Player1`–`Player4`
-
-### 2.4 Main Interaction
-
-- Start menu
-- Player selection
-- Difficulty selection
-- Game setup
-- Board rendering
-- Dice roll
-- Movement
-- Question resolution
-- Probability Storm event
-- End-of-game certificate view
-
-### 2.5 Educational Component
-
-Game ini mengandung materi probabilitas dan pengujian pemahaman melalui soal yang dibagi berdasarkan tingkat kesulitan (`easy`, `standard`, `hard`, `mystery`). Soal disimpan di `question/*.json` dan dimuat saat runtime.
-
-### 2.6 Platform Target
-
-- Primary target: web browser
-- Secondary: desktop browser experience with responsive layout for smaller screens
-- Status: IMPLEMENTED for browser-based static play
-
-## 3. Game State Flow
-
-### 3.1 Game State Flow (Mermaid)
+Alur giliran normal: `PLAYING → ROLLING_DICE → CARD_DRAW → CARD_RESULT → [COIN_DRAW → COIN_RESULT]*` atau gerak pion; gerak berikutnya dapat menuju pertanyaan/misteri, ular/tangga, giliran berikutnya, atau menang. `CARD_RESULT` penalty menuju `TURN_TRANSITION`; fortune memakai nilai dadu untuk movement. Coin goal selesai lalu gerakan memakai nilai dadu saat itu.
 
 ```mermaid
 flowchart TD
-    A[BOOT] --> B[MENU]
-    B --> C[PLAYER_SETUP]
-    C --> D[GAME_SETUP]
-    D --> E[PLAYING]
-    E --> F[ROLLING_DICE]
-    F --> G[MOVING_PLAYER]
-    G --> H{Need Question?}
-    H -- Yes --> I[QUESTION / MYSTERY]
-    I --> J[QUESTION_RESULT]
-    J --> K{Probability Storm Active?}
-    K -- Yes --> L[PROBABILITY_STORM]
-    K -- No --> M{Turn end?}
-    L --> M
-    M -- No --> E
-    M -- Yes --> N[TURN_TRANSITION]
-    N --> E
-    G --> O{Win Condition?}
-    O -- Yes --> P[GAME_OVER]
-    P --> Q[CERTIFICATE]
+  MENU --> SETUP[PLAYER_SETUP]
+  SETUP --> GAME_SETUP --> PLAYING
+  PLAYING --> ROLL[ROLLING_DICE]
+  ROLL --> CARD[CARD_DRAW]
+  CARD --> CARD_RESULT
+  CARD_RESULT -->|game card| COIN[COIN_DRAW]
+  COIN --> COIN_RESULT
+  COIN_RESULT -->|goal belum selesai| COIN
+  COIN_RESULT -->|goal selesai| MOVE[MOVING_PLAYER]
+  CARD_RESULT -->|fortune| MOVE
+  CARD_RESULT -->|penalty| TURN[TURN_TRANSITION]
+  MOVE -->|special tile| QUESTION[QUESTION / MYSTERY]
+  MOVE -->|snake/ladder| MOVE
+  MOVE -->|belum selesai| TURN
+  MOVE -->|finish| OVER[GAME_OVER]
+  QUESTION --> RESULT[QUESTION_RESULT]
+  RESULT -->|bonus/konsekuensi gerak| MOVE
+  RESULT -->|giliran berakhir| TURN
+  PLAYING -->|timer aman| STORM[PROBABILITY_STORM]
+  STORM --> RESULT
+  STORM -->|semua pemain selesai| PLAYING
+  TURN --> PLAYING
+  OVER --> CERT[CERTIFICATE]
 ```
 
-### 3.2 GDLC (Game Development Life Cycle) Flow
+## FSM State Diagram (aktual)
 
-Catatan: repository tidak mencantumkan GDLC formal, jadi diagram berikut merupakan referensi umum berdasarkan workflow yang tampak dari repo.
-
-```mermaid
-flowchart LR
-    A[Initiation / Requirements] --> B[Pre-Production]
-    B --> C[Design / Game Rules]
-    C --> D[Production / Implementation]
-    D --> E[Testing]
-    E --> F{Issue Found?}
-    F -- Yes --> G[Revision]
-    G --> E
-    F -- No --> H[Evaluation / Beta]
-    H --> I[Release]
-    I --> J[Maintenance]
-```
-
-Status: [REFERENCE / PROPOSED]
-
-### 3.3 Gameplay Logic Flow
-
-```mermaid
-flowchart TD
-    A[Game Start] --> B[Setup Game]
-    B --> C[Player Turn]
-    C --> D[Roll Dice]
-    D --> E[Calculate Movement]
-    E --> F[Move Player]
-    F --> G{Is tile special?}
-    G -- Yes --> H[Check Tile Type]
-    G -- No --> I[Normal Tile]
-    H --> J{Snake?}
-    H --> K{Ladder?}
-    H --> L{Mystery?}
-    J -- Yes --> M[Snake Logic]
-    K -- Yes --> N[Ladder Logic]
-    L -- Yes --> O[Question Event]
-    M --> P[Resolve Result]
-    N --> P
-    O --> P
-    I --> P
-    P --> Q{Answer Correct?}
-    Q -- Yes --> R[Continue Turn]
-    Q -- No --> S[Penalty / Continue]
-    R --> T{Win Condition?}
-    S --> T
-    T -- Yes --> U[Game Over]
-    T -- No --> V[Next Turn]
-```
-
-### 3.4 Decision Points
-
-- Apakah pemain menang? (`WinConditionSystem.hasWon`)
-- Apakah tile memerlukan pertanyaan? (`movementSystem.getTileDifficulty`)
-- Apakah jawaban benar? (`QuestionSystem.evaluateAnswer`)
-- Apakah event probability storm aktif? (`isStormActive`)
-- Apakah giliran selesai? (dijalankan melalui state turn transition)
-
-## 4. FSM Reference
-
-### 4.1 Existing FSM
-
-FSM yang aktif saat ini terletak di:
-
-- `core/GameState.js`
-- `core/Game.js`
-- `core/StateMachine.js`
-- `states/*.js`
-
-### 4.2 State List
-
-```text
-BOOT
-MENU
-PLAYER_SETUP
-GAME_SETUP
-PLAYING
-ROLLING_DICE
-MOVING_PLAYER
-QUESTION
-MYSTERY
-QUESTION_RESULT
-PROBABILITY_STORM
-TURN_TRANSITION
-GAME_OVER
-CERTIFICATE
-```
-
-### 4.3 State Transition Diagram
+Daftar berikut disalin dari `core/Game.js`. Transisi berulang ke state yang sama ditangani sebagai no-op oleh `StateMachine`, bukan edge FSM baru.
 
 ```mermaid
 stateDiagram-v2
@@ -190,8 +67,21 @@ stateDiagram-v2
   PLAYING --> ROLLING_DICE
   PLAYING --> QUESTION
   PLAYING --> PROBABILITY_STORM
+  ROLLING_DICE --> CARD_DRAW
   ROLLING_DICE --> MOVING_PLAYER
+  ROLLING_DICE --> PLAYING
+  CARD_DRAW --> CARD_RESULT
+  CARD_RESULT --> COIN_DRAW
+  CARD_RESULT --> MOVING_PLAYER
+  CARD_RESULT --> PLAYING
+  CARD_RESULT --> TURN_TRANSITION
+  COIN_DRAW --> COIN_RESULT
+  COIN_RESULT --> COIN_DRAW
+  COIN_RESULT --> MOVING_PLAYER
+  COIN_RESULT --> TURN_TRANSITION
+  COIN_RESULT --> PLAYING
   MOVING_PLAYER --> MOVING_PLAYER
+  MOVING_PLAYER --> CARD_DRAW
   MOVING_PLAYER --> QUESTION
   MOVING_PLAYER --> MYSTERY
   MOVING_PLAYER --> TURN_TRANSITION
@@ -199,12 +89,16 @@ stateDiagram-v2
   QUESTION --> QUESTION_RESULT
   QUESTION --> MOVING_PLAYER
   QUESTION --> TURN_TRANSITION
+  QUESTION --> PLAYING
   MYSTERY --> QUESTION_RESULT
   MYSTERY --> MOVING_PLAYER
   MYSTERY --> TURN_TRANSITION
+  MYSTERY --> PLAYING
   QUESTION_RESULT --> MOVING_PLAYER
   QUESTION_RESULT --> TURN_TRANSITION
   QUESTION_RESULT --> PROBABILITY_STORM
+  QUESTION_RESULT --> PLAYING
+  QUESTION_RESULT --> GAME_OVER
   PROBABILITY_STORM --> QUESTION_RESULT
   PROBABILITY_STORM --> MOVING_PLAYER
   PROBABILITY_STORM --> PLAYING
@@ -212,403 +106,224 @@ stateDiagram-v2
   GAME_OVER --> CERTIFICATE
 ```
 
-### 4.4 State Responsibility Table
+**Catatan implementasi:** timer soal/Storm dan animasi berjalan sebagai callback controller; FSM tidak otomatis membatalkannya. UI/modal tertentu juga punya kontrol yang harus tetap menyinkronkan state. Tombol tutup pertanyaan saat ini mengirim jawaban kosong melalui jalur submit (salah), bukan mengaktifkan dadu langsung. `Game.js` tetap otoritatif jika diagram berbeda.
 
-| State             | Responsibility                          | Next State                                          |
-| ----------------- | --------------------------------------- | --------------------------------------------------- |
-| MENU              | entry screen                            | PLAYER_SETUP                                        |
-| PLAYER_SETUP      | player count + identity selection       | GAME_SETUP                                          |
-| GAME_SETUP        | reset board/state, start gameplay       | PLAYING                                             |
-| PLAYING           | active turn loop                        | ROLLING_DICE / QUESTION / PROBABILITY_STORM         |
-| ROLLING_DICE      | delegate dice action                    | MOVING_PLAYER                                       |
-| MOVING_PLAYER     | move player, check ladder/snake/mystery | QUESTION / MYSTERY / TURN_TRANSITION / GAME_OVER    |
-| QUESTION          | present normal question                 | QUESTION_RESULT                                     |
-| MYSTERY           | present mystery question                | QUESTION_RESULT                                     |
-| QUESTION_RESULT   | display evaluation                      | MOVING_PLAYER / TURN_TRANSITION / PROBABILITY_STORM |
-| PROBABILITY_STORM | run event sequence                      | QUESTION_RESULT / MOVING_PLAYER / PLAYING           |
-| TURN_TRANSITION   | advance turn                            | PLAYING                                             |
-| GAME_OVER         | winner handling                         | CERTIFICATE                                         |
-| CERTIFICATE       | leaderboard and certificate             | terminal                                            |
+## Gameplay Sequence Diagram
 
-## 5. Use Case Diagram
+```mermaid
+sequenceDiagram
+  actor P as Pemain
+  participant C as script.js
+  participant F as Game / StateMachine
+  participant S as systems
+  participant U as UI
+  participant D as JSON data
+  P->>C: Roll dadu
+  C->>F: ROLLING_DICE(playerNumber)
+  F->>C: action rollDice
+  C->>S: DiceSystem.roll
+  C->>F: CARD_DRAW(deck, player)
+  F->>U: tampilkan pilihan kartu
+  P->>U: pilih kartu
+  U->>C: selectCard(index)
+  C->>F: CARD_RESULT(card, diceValue)
+  alt kartu coin
+    F->>U: tampilkan goal coin
+    C->>D: load goals.json (saat inisialisasi)
+    P->>U: toss / continue
+    C->>S: CoinSystem.toss(goal)
+  else kartu fortune/penalty
+    C->>S: resolveEffect
+  end
+  C->>S: hitung gerak dan tile
+  alt tile perlu soal
+    C->>F: QUESTION atau MYSTERY
+    F->>U: tampilkan soal dan timer
+    D-->>C: question JSON / fallback
+    P->>U: jawab atau tutup (jawaban kosong)
+    C->>S: evaluateAnswer + recordAnswer
+    C->>F: QUESTION_RESULT
+  end
+  C->>S: resolve gerak/turn/win
+  C->>F: state berikutnya
+```
 
-### 5.1 Actors
-
-| Actor     | Role                      | Status                        |
-| --------- | ------------------------- | ----------------------------- |
-| Player    | main game actor           | IMPLEMENTED                   |
-| System    | game engine/controller    | IMPLEMENTED                   |
-| Developer | maintenance and extension | IMPLEMENTED as authoring role |
-
-### 5.2 Use Cases
-
-| Actor  | Use Case                 | Description                       | Status      |
-| ------ | ------------------------ | --------------------------------- | ----------- |
-| Player | Start Game               | launch menu and begin flow        | IMPLEMENTED |
-| Player | Select Number of Players | choose 2–4 players                | IMPLEMENTED |
-| Player | Set Name / Profile       | set player identity               | IMPLEMENTED |
-| Player | Set Difficulty           | choose global difficulty          | IMPLEMENTED |
-| Player | Roll Dice                | generate movement value           | IMPLEMENTED |
-| Player | Answer Question          | answer math question              | IMPLEMENTED |
-| Player | Complete Turn            | finish turn and advance           | IMPLEMENTED |
-| Player | View Certificate         | see end result data               | IMPLEMENTED |
-| System | Evaluate Answer          | validate and score answer         | IMPLEMENTED |
-| System | Check Win Condition      | decide if player reached tile 100 | IMPLEMENTED |
-| System | Trigger Storm            | run probability storm event       | IMPLEMENTED |
-
-### 5.3 Use Case Diagram
+## Use Case Diagram
 
 ```mermaid
 flowchart LR
-    Player((Player))
-    System((System))
-
-    subgraph Game
-        A[Start Game]
-        B[Select Players]
-        C[Set Difficulty]
-        D[Roll Dice]
-        E[Answer Question]
-        F[Resolve Movement]
-        G[Check Win Condition]
-        H[View Certificate]
-        I[Probability Storm]
-    end
-
-    Player --> A
-    Player --> B
-    Player --> C
-    Player --> D
-    Player --> E
-    Player --> H
-    System --> F
-    System --> G
-    System --> I
-    E --> System
-    D --> System
+  P[Pemain lokal]
+  P --> A[Memilih 2–4 pemain dan profil]
+  P --> B[Memilih tingkat kesulitan]
+  P --> C[Melempar dadu dan memilih kartu]
+  P --> D[Menjalankan goal koin]
+  P --> E[Menjawab soal atau timeout/menyerah]
+  P --> F[Melihat posisi, giliran, dan event]
+  P --> G[Melihat leaderboard/sertifikat dan mengunduh PNG]
+  SYS[Sistem] --> H[Memuat bank soal dan goal]
+  SYS --> I[Memproses movement, tile, statistik, dan winner]
+  SYS --> J[Memicu Probability Storm berkala]
 ```
 
-### 5.4 Relationship Notes
-
-- Use case model is based on actual state transitions and action wiring in `script.js`.
-- No AI actor or NPC opponent is implemented in current repo.
-- `AI Player` remains [PLANNED] and not introduced into the actual use-case model.
-
-## 6. Sequence Diagram
-
-### 6.1 Game Initialization Sequence
+## Module Diagram
 
 ```mermaid
-sequenceDiagram
-    actor Player
-    participant UI
-    participant Game
-    participant StateMachine
-    participant GameSetupState
-
-    Player->>UI: Open game
-    UI->>Game: start()
-    Game->>StateMachine: transition(MENU)
-    StateMachine->>GameSetupState: enter()
-    Player->>UI: Select players / difficulty
-    UI->>Game: transition(GAME_SETUP)
-    Game->>GameSetupState: enter()
-    GameSetupState->>Game: setupGame()
+flowchart TB
+  HTML[index.html + style.css] --> ENTRY[script.js: composition + controller]
+  ENTRY --> CORE[core: Game / StateMachine / Context]
+  ENTRY --> STATES[states: lifecycle actions]
+  ENTRY --> SYSTEMS[systems: rules and calculations]
+  ENTRY --> UI[ui: DOM adapters]
+  ENTRY --> JSON[question/*.json + subgame/goals.json]
+  UI --> CDN[MathLive / html2canvas / Font Awesome]
 ```
 
-### 6.2 Gameplay Turn Sequence
+## Class Diagram
 
-```mermaid
-sequenceDiagram
-    actor Player
-    participant Game
-    participant StateMachine
-    participant DiceSystem
-    participant MovementSystem
-    participant QuestionSystem
-    participant ScoreSystem
-
-    Player->>Game: rollDice()
-    Game->>StateMachine: transition(ROLLING_DICE)
-    StateMachine->>DiceSystem: roll()
-    DiceSystem-->>Game: dice value
-    Game->>MovementSystem: calculateDestination()
-    MovementSystem-->>Game: final position
-    Game->>QuestionSystem: evaluateAnswer()
-    QuestionSystem-->>ScoreSystem: update stats
-    ScoreSystem-->>Game: score state
-```
-
-### 6.3 Question Handling Sequence
-
-```mermaid
-sequenceDiagram
-    actor Player
-    participant QuestionUI
-    participant QuestionSystem
-    participant ScoreSystem
-    participant Game
-
-    Player->>QuestionUI: Input answer
-    QuestionUI->>Game: handleQuestionAnswer()
-    Game->>QuestionSystem: evaluateAnswer(question, answer)
-    QuestionSystem-->>Game: {correct, message}
-    Game->>ScoreSystem: recordAnswer(player, question, correct)
-    ScoreSystem-->>Game: updated stats
-    Game->>QuestionUI: show result / hide modal
-```
-
-### 6.4 Game Completion Sequence
-
-```mermaid
-sequenceDiagram
-    participant Game
-    participant WinConditionSystem
-    participant CertificateUI
-
-    Game->>WinConditionSystem: hasWon(player)
-    WinConditionSystem-->>Game: true/false
-    alt winner found
-        Game->>Game: transition(GAME_OVER)
-        Game->>CertificateUI: render(players, winner, ...)
-    end
-```
-
-## 7. Class Diagram
-
-### 7.1 Class / Module Inventory
-
-| Class / Module        | Type   | Responsibility                             | Dependency                |
-| --------------------- | ------ | ------------------------------------------ | ------------------------- |
-| Game                  | class  | orchestrates transition and lifecycle      | StateMachine, GameContext |
-| StateMachine          | class  | validates transitions and state changes    | GameState                 |
-| GameContext           | class  | stores runtime data and action callbacks   | GameState                 |
-| GameState             | object | holds named state constants                | -                         |
-| MenuState             | class  | menu lifecycle                             | GameContext.actions       |
-| PlayerSelectionState  | class  | player setup lifecycle                     | GameContext.actions       |
-| GameSetupState        | class  | setup lifecycle                            | GameContext.actions       |
-| PlayingState          | class  | gameplay active state                      | GameContext.actions       |
-| RollingDiceState      | class  | dice trigger lifecycle                     | GameContext.actions       |
-| MovingPlayerState     | class  | movement logic trigger                     | GameContext.actions       |
-| QuestionState         | class  | question UI state                          | GameContext.actions       |
-| MysteryState          | class  | mystery event state                        | GameContext.actions       |
-| QuestionResultState   | class  | result screen lifecycle                    | GameContext.actions       |
-| ProbabilityStormState | class  | storm lifecycle                            | GameContext.actions       |
-| TurnTransitionState   | class  | turn advancement lifecycle                 | GameContext.actions       |
-| GameOverState         | class  | winner handling lifecycle                  | GameContext.actions       |
-| CertificateState      | class  | certificate entry lifecycle                | GameContext.actions       |
-| PlayerSystem          | class  | player creation/reset                      | -                         |
-| TurnSystem            | class  | turn rotation                              | -                         |
-| DiceSystem            | class  | random dice value generation               | -                         |
-| MovementSystem        | class  | movement and tile logic                    | -                         |
-| QuestionSystem        | class  | random question and answer validation      | questionPool              |
-| ScoreSystem           | class  | scoring and streak stats                   | player stats              |
-| WinConditionSystem    | class  | evaluates finish condition                 | -                         |
-| BoardUI               | class  | render board                               | DOM                       |
-| DiceUI                | class  | render dice                                | DOM                       |
-| GameUI                | class  | general game UI feedback                   | DOM                       |
-| QuestionUI            | class  | question modal and answer input            | DOM                       |
-| ModalUI               | class  | modal show/hide                            | DOM                       |
-| CertificateUI         | class  | leaderboard + certificate rendering/export | DOM, html2canvas          |
-
-### 7.2 Class Diagram Overview
+Diagram ini menunjukkan kelas yang benar-benar ditemukan dan hubungan komposisi/pemakaian tingkat modul. `script.js` adalah controller berbasis fungsi, bukan class. State handler menerima actions lewat `GameContext`; system/UI dibuat dan dihubungkan oleh controller.
 
 ```mermaid
 classDiagram
-    class Game {
-        +start()
-        +transition(nextState, event)
-    }
+  class Game {
+    +start()
+    +transition(nextState, event)
+  }
+  class StateMachine {
+    +canTransition(nextState)
+    +transition(nextState)
+    +currentState
+    +previousState
+  }
+  class GameContext {
+    +data
+    +actions
+    +event
+    +gameStatus
+  }
+  class GameController
 
-    class GameContext {
-        +data
-        +actions
-        +event
-        +gameStatus
-    }
+  class MenuState
+  class PlayerSelectionState
+  class GameSetupState
+  class PlayingState
+  class RollingDiceState
+  class MovingPlayerState
+  class QuestionState
+  class MysteryState
+  class QuestionResultState
+  class ProbabilityStormState
+  class TurnTransitionState
+  class CardDrawState
+  class CardResultState
+  class CoinDrawState
+  class CoinResultState
+  class GameOverState
+  class CertificateState
 
-    class StateMachine {
-        +transition(nextState)
-        +currentState
-        +previousState
-    }
+  class PlayerSystem
+  class TurnSystem
+  class DiceSystem
+  class MovementSystem
+  class QuestionSystem
+  class ScoreSystem
+  class WinConditionSystem
+  class CardSystem
+  class CoinSystem
 
-    class PlayerSystem
-    class TurnSystem
-    class DiceSystem
-    class MovementSystem
-    class QuestionSystem
-    class ScoreSystem
-    class WinConditionSystem
+  class MenuUI
+  class BoardUI
+  class DiceUI
+  class GameUI
+  class QuestionUI
+  class ModalUI
+  class CardUI
+  class CoinUI
+  class CertificateUI
 
-    class BoardUI
-    class DiceUI
-    class GameUI
-    class QuestionUI
-    class ModalUI
-    class CertificateUI
-
-    Game --> GameContext
-    Game --> StateMachine
-    Game --> PlayerSystem
-    Game --> TurnSystem
-    Game --> DiceSystem
-    Game --> MovementSystem
-    Game --> QuestionSystem
-    Game --> ScoreSystem
-    Game --> WinConditionSystem
-    Game --> BoardUI
-    Game --> DiceUI
-    Game --> GameUI
-    Game --> QuestionUI
-    Game --> ModalUI
-    Game --> CertificateUI
+  Game *-- StateMachine : creates
+  Game o-- GameContext : uses
+  GameController ..> Game : composes
+  GameController ..> GameContext : fills data/actions
+  Game ..> MenuState : registers handlers
+  Game ..> PlayerSelectionState
+  Game ..> GameSetupState
+  Game ..> PlayingState
+  Game ..> RollingDiceState
+  Game ..> MovingPlayerState
+  Game ..> QuestionState
+  Game ..> MysteryState
+  Game ..> QuestionResultState
+  Game ..> ProbabilityStormState
+  Game ..> TurnTransitionState
+  Game ..> CardDrawState
+  Game ..> CardResultState
+  Game ..> CoinDrawState
+  Game ..> CoinResultState
+  Game ..> GameOverState
+  Game ..> CertificateState
+  GameContext ..> GameState : gameStatus
+  GameController ..> PlayerSystem : instantiates/uses
+  GameController ..> TurnSystem
+  GameController ..> DiceSystem
+  GameController ..> MovementSystem
+  GameController ..> QuestionSystem
+  GameController ..> ScoreSystem
+  GameController ..> WinConditionSystem
+  GameController ..> CardSystem
+  GameController ..> CoinSystem
+  GameController ..> MenuUI : instantiates/uses
+  GameController ..> BoardUI
+  GameController ..> DiceUI
+  GameController ..> GameUI
+  GameController ..> QuestionUI
+  GameController ..> ModalUI
+  GameController ..> CardUI
+  GameController ..> CoinUI
+  GameController ..> CertificateUI
 ```
 
-### 7.3 Dependency Notes
+## GDLC (Game Development Life Cycle)
 
-- `script.js` composes major instances directly.
-- UI classes are rendered through DOM and callback actions.
-- There is no EventBus in current repository.
-- State classes do not own core game calculations; logic remains in systems.
+GDLC di bawah adalah pemetaan siklus pengembangan untuk mengelola project, bukan state machine runtime dan bukan bukti bahwa setiap tahap formal sudah dijalankan. Status tahap didasarkan pada artefak yang tersedia; tidak ditemukan catatan release/tag resmi.
 
-## 8. Platform and System Requirements
-
-### 8.1 Target Platform
-
-| Platform                 | Status                | Notes                                                                    |
-| ------------------------ | --------------------- | ------------------------------------------------------------------------ |
-| Web Browser              | IMPLEMENTED           | game is served as static HTML/JS                                         |
-| Desktop Browser          | IMPLEMENTED           | primary play target                                                      |
-| Tablet / Mobile viewport | PARTIALLY IMPLEMENTED | responsive CSS exists, browser UI not formally tested across all devices |
-| Native app               | NOT APPLICABLE        | no packaging or runtime wrapper detected                                 |
-
-### 8.2 Browser Compatibility
-
-| Browser           | Status                                 | Notes                                                             |
-| ----------------- | -------------------------------------- | ----------------------------------------------------------------- |
-| Chromium / Chrome | Expected / Used in development context | likely supported; not explicitly documented as formal test matrix |
-| Microsoft Edge    | Expected                               | no explicit evidence in repo                                      |
-| Firefox           | Not Tested                             | no explicit evidence in repo                                      |
-| Safari            | Not Tested                             | no explicit evidence in repo                                      |
-
-### 8.3 Hardware Requirements
-
-Repository does not include formal benchmark or minimum hardware data. Because it is a lightweight web game, requirements are likely low, but they are not formally benchmarked.
-
-- Minimum: not formally specified
-- Recommended: standard modern desktop or laptop with browser support
-- Storage: minimal, mostly static assets and JSON question files
-
-### 8.4 Software Requirements
-
-| Requirement        | Status                                                                                  |
-| ------------------ | --------------------------------------------------------------------------------------- |
-| Operating System   | Any modern desktop OS with browser support                                              |
-| Browser            | Modern browser with JavaScript enabled                                                  |
-| JavaScript Runtime | Browser-supported ES modules                                                            |
-| Audio Playback     | Browser audio support required for BGM and sound effects                                |
-| Local file usage   | static site can run by opening HTML directly, but Live Server is recommended per README |
-
-### 8.5 Development Requirements
-
-| Item         | Status                                                    |
-| ------------ | --------------------------------------------------------- |
-| Code Editor  | VS Code is used in this environment                       |
-| Git          | Not formally required by repo but suitable for versioning |
-| Node.js      | Not required for runtime; used for tests here             |
-| Local Server | Recommended per README, not mandatory                     |
-
-## 9. Release Versions
-
-### 9.1 Release History
-
-Repository does not include a formal changelog or git tag history in the available files reviewed.
-
-Status: Release history not formally recorded.
-
-### 9.2 Version Strategy
-
-Recommended versioning strategy, if project is formalized later:
-
-```text
-MAJOR.MINOR.PATCH
+```mermaid
+flowchart LR
+  C[Konsep dan kebutuhan] --> D[Desain game dan teknis]
+  D --> P[Produksi: implementasi]
+  P --> T[Pengujian dan evaluasi]
+  T -->|temuan / revisi| P
+  T --> R[Build / release]
+  R --> M[Operasi dan pemeliharaan]
+  M -->|umpan balik / fitur baru| C
 ```
 
-- MAJOR: breaking gameplay / architecture changes
-- MINOR: new backward-compatible features
-- PATCH: bug fixes and minor refinements
+| Tahap GDLC | Status bukti project | Artefak / pekerjaan |
+|---|---|---|
+| Konsep dan kebutuhan | PARTIALLY IMPLEMENTED | README, `GDD-TDD.md`, dan `flow-and-requirement.md` mendeskripsikan tujuan/fitur; persetujuan formal kebutuhan tidak ditemukan. |
+| Desain | IMPLEMENTED sebagai dokumentasi desain | `ARCHITECTURE.md`, dokumen GDD-TDD, diagram FSM/alur. Sinkronisasi desain dengan code harus terus dijaga. |
+| Produksi | IMPLEMENTED | Source frontend, data JSON, UI, audio/image assets, dan FSM tersedia. |
+| Pengujian dan evaluasi | PARTIALLY IMPLEMENTED | Unit/FSM tests ada dan hasil historis dilaporkan; run terbaru serta E2E/browser matrix belum terverifikasi. Lihat `test.md`. |
+| Release | UNKNOWN / NOT VERIFIED | Tidak ditemukan versi/tag, pipeline build, deployment, atau bukti acceptance formal. |
+| Operasi dan pemeliharaan | UNKNOWN | Tidak ditemukan telemetry, issue log formal, atau proses maintenance/release berulang. |
 
-Status: [RECOMMENDED VERSIONING STRATEGY]
+## Rekomendasi pengembangan per tahap
 
-### 9.3 Release Milestones
+1. Perjelas kebutuhan/aturan yang masih ambigu (misalnya semantik tutup soal dan efek fortune).
+2. Jaga desain dan diagram tetap berasal dari source FSM/data flow aktual.
+3. Implementasikan perubahan per system/state/UI boundary dan tambahkan regression test.
+4. Jalankan test otomatis dan browser acceptance; simpan output serta bukti per skenario.
+5. Tetapkan kriteria release dan versi hanya setelah validasi browser yang disepakati selesai.
+6. Catat temuan pascarelease sebagai masukan iterasi berikutnya.
 
-| Milestone             | Status     |
-| --------------------- | ---------- |
-| Initial prototype     | [PROPOSED] |
-| Feature-complete demo | [PROPOSED] |
-| Stable release        | [PROPOSED] |
+## Platform, batas, dan kebutuhan sistem
 
-No formal release milestones were discovered in repo.
+- **IMPLEMENTED:** static browser app, ES modules, HTML/CSS/JS; local HTTP server dianjurkan untuk `fetch`.
+- **PARTIALLY IMPLEMENTED:** responsive CSS dan audio/MathLive/certificate integration ada, tetapi matriks perangkat/browser dan interaksi penuh tidak tersedia.
+- **UNKNOWN:** browser minimum, performa minimum, aksesibilitas formal, release version/tag. Tidak ditemukan spesifikasi hardware formal atau changelog/tag dalam dokumen yang diaudit.
+- **PLANNED / NOT IMPLEMENTED:** backend, penyimpanan hasil permanen, online play, AI/NPC, duel, kelas/subjek.
 
-## 10. Diagram Summary
+Kebutuhan runtime: browser modern yang mendukung JavaScript modules, DOM, `fetch`, media, dan library eksternal; koneksi atau aset lokal untuk CDN yang dipakai. Node.js digunakan untuk test, bukan runtime game.
 
-| Diagram             | Purpose                       | Status                              |
-| ------------------- | ----------------------------- | ----------------------------------- |
-| Game State Flow     | overview of state transitions | IMPLEMENTED                         |
-| GDLC Flow           | lifecycle reference           | REFERENCE / PROPOSED                |
-| Gameplay Logic Flow | end-to-end turn logic         | IMPLEMENTED                         |
-| FSM Reference       | actual repo state machine     | IMPLEMENTED                         |
-| Use Case Diagram    | actor interaction model       | IMPLEMENTED (based on actual flows) |
-| Sequence Diagram    | runtime interaction trace     | IMPLEMENTED (based on source flow)  |
-| Class Diagram       | architecture overview         | IMPLEMENTED (module-level)          |
+## Release dan referensi
 
-## 11. Documentation Notes
-
-### 11.1 Assumptions
-
-- This document follows the repository source code as the primary authority.
-- Game is a local browser game, not multiplayer online by default.
-- There is no server-side backend or persistent leaderboard service in repo.
-
-### 11.2 Proposed Elements
-
-- Formal release versioning strategy
-- Standardized QA checklist for browser/device matrix
-- Optional online leaderboard or server-backed persistence
-
-### 11.3 Missing Information
-
-- Exact browser testing matrix
-- Formal release history
-- Hardware benchmark data
-- Formal QA/UX test report
-- Actual backend or cloud deployment configuration
-
-### 11.4 Discrepancies
-
-| Documentation Claim                                             | Actual Implementation                                                       | Resolution                     |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------ |
-| README describes educational game and advanced settings         | source confirms browser game with local multiplayer and JSON question banks | use source as source of truth  |
-| Some architecture notes mention AI / battle / subject selection | repo does not implement these as runtime features                           | mark as PLANNED / NOT IN SCOPE |
-| Release history appears implied                                 | no formal release data in repo                                              | mark as not formally recorded  |
-
-## 12. Testing Reference
-
-Black Box Testing records are documented separately in [test.md](./test.md).
-
-This file describes the flow, architecture, platform, and requirement view of the project. The testing file records evidence from automated verification and any historical testing data found in context.
-
-## 13. Final Summary
-
-Current state of project from code evidence:
-
-- Game flow is operational and based on explicit state transitions.
-- Core systems are implemented and tested.
-- Question bank is loaded from JSON and fallback is present.
-- Probability Storm is active and part of primary gameplay.
-- Certificate export is implemented.
-- There is no formal release history in repo.
-- AI / online features / persistent backend are not implemented.
-
-This document is intended as a blueprint for future development and for cross-checking new features against actual implementation.
+Tidak ditemukan informasi release version/tag yang dapat diverifikasi. Status hasil test dan batas cakupannya dicatat pada [test.md](test.md). Rencana produk/teknis ada di [GDD-TDD.md](GDD-TDD.md).
